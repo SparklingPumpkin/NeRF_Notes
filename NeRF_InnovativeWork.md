@@ -101,7 +101,7 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
     * pixelNeRF在**输入图像的相机坐标系而非规范坐标框架**中预测NeRF表示。这不仅对于泛化到未见过的场景和对象类别至关重要，而且由于在有多个对象或真实场景中没有明确的规范坐标系，这种方法也更具灵活性。
 
 8. [GRAF: Generative Radiance Fields for 3D-Aware Image Synthesis](https://arxiv.org/abs/2007.02442) | NeurIPS2020_599 | [github](https://github.com/autonomousvision/graf)
-    * GRAF将NeRF技术与GAN框架结合起来。NeRF用于创建连续的3D场景表示，而GAN则用于提高生成图像的真实性。这种结合允许GRAF同时捕捉3D场景的几何细节和视觉真实感。
+    * GRAF将NeRF技术与**GAN框架**结合起来。NeRF用于创建连续的3D场景表示，而GAN则用于提高生成图像的真实性。这种结合允许GRAF同时捕捉3D场景的几何细节和视觉真实感。
 
 
 #### 3.1.4 Video
@@ -149,13 +149,9 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
 
 ## Review
 
-1. [2020-2021](https://dellaert.github.io/NeRF/)
-2. [ICCV 2021](https://dellaert.github.io/NeRF21/)
-3. [CVPR 2022](https://dellaert.github.io/NeRF22/)
-4. [ECCV 2022](https://markboss.me/post/nerf_at_eccv22/)
-5. [CVPR 2023](https://markboss.me/post/nerf_at_cvpr23/)
+[BeyondPixels: A Comprehensive Review of the Evolution of Neural Radiance Fields](https://arxiv.org/abs/2306.03000)
 
-
+[NeRF: Neural Radiance Field in 3D Vision, Introduction and Review](https://arxiv.org/abs/2210.00379)
 
 
 
