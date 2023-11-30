@@ -21,6 +21,9 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
 * 仅能表示静态场景
 * it bakes lighting，失去了动态光的灵活性
 * A trained NeRF 无法泛化
+* NeRF训练的模型无法编辑纹理贴图。
+
+这四点都很重要。
 
 ## 3. NeRF_Improved
 
@@ -46,21 +49,33 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
 
 
 5. [Neural Sparse Voxel Fields](https://github.com/facebookresearch/NSVF) | NeurIPS2020_733 | [github](https://github.com/facebookresearch/NSVF)  
-    * SVF提出了一种新的隐式表示方法，用于高效的自由视角渲染。它由一组**体素边界隐式场**组成，这些场被组织在一个**稀疏的体素八叉树**中。这种方法的优点在于它可以通过**跳过不包含相关场景内容的体素**，从而**加快新视角的渲染**。与大多数显式的几何表示不同，神经隐函数是平滑且连续的，并且理论上可以实现高空间分辨率​​。
+    * NSVF提出了一种新的隐式表示方法，用于高效的自由视角渲染。它由一组**体素边界隐式场**组成，这些场被组织在一个**稀疏的体素八叉树**中。这种方法的优点在于它可以通过**跳过不包含相关场景内容的体素**，从而**加快新视角的渲染**。与大多数显式的几何表示不同，神经隐函数是平滑且连续的，并且理论上可以实现高空间分辨率​​。
     * 在体素八叉树中，每个节点代表一个体素，而该体素可以被进一步细分为八个更小的体素（子节点）。这种结构非常适合用于表示稀疏的3D数据，因为它允许在具有复杂几何或属性的区域使用更细的分辨率，同时在空旷或简单的区域使用较粗的分辨率。体素八叉树常用于体积渲染和场景的几何优化，因为它可以显著减少渲染和处理所需的数据量。
 
 
 
 #### 3.1.2 加快训练
 
-1. [TensoRF: Tensorial Radiance Fields](https://apchenstu.github.io/TensoRF/) | ECCV2022_405 | [github](https://github.com/apchenstu/TensoRF)  
-    * TensoRF将场景的辐射场视为一个4D张量，并提出将这个张量分解为多个紧凑的低秩张量成分，用于高效的场景建模​​。TensoRF的张量分解显著降低了空间复杂性，从而减少了内存占用。
+1. [TensoRF: Tensorial Radiance Fields](https://apchenstu.github.io/TensoRF/) | ECCV2022_405 | [github](https://github.com/apchenstu/TensoRF)   
+    **TensoRF (Tensorial Radiance Fields，张量辐射场)**，在NeRF的基础上，该方法首次从张量角度看待辐射场建模，并将辐射场重建问题作为低秩张量重构之一提出。TensoRF将场景的辐射场建模为 4D 张量（显式体素特征网格，不是简单的特征网格），表示具有每个体素多通道特征的 3D 体素网格——**x, y, z和一个特征，这个特征是一个通道，涵盖颜色、视角等**。优势：
+    - 显著降低内存占用
+    - 加速训练（百倍级别，CP < 30min；VM < 10min）
+    - 提高渲染速度（zhi'liang）
+    - 减小模型大小（CP < 4m；VM < 75m）   
+    - 基于标准PyTorch，实用性强
+
+    ![Alt text](image.png)
+    关于张量分解：在经典的CP分解已经有较好效果的基础上，本文提出了vector-matrix (VM) 分解。张量分解：应用最广泛的分解是 Tucker 分解和 CP 分解（都可以看作是矩阵奇异值分解 SVD 的推广），两者结合为块项分解（BTD）。本文新提出的 VM（Vector-Matrix） 分解是 BTD 的一种。
+        ![Alt text](image-2.png)
+        左图：CP分解，将张量分解为向量外积之和。右图：我们的向量矩阵分解，它将张量分解为向量矩阵外积的总和。
+
+
 
 2. [Plenoxels Radiance Fields without Neural Networks](https://alexyu.net/plenoxels/) | CVPR2022_353 | [github](https://github.com/sxyu/svox2)  
-    * Plenoxel模型是一种基于视角依赖的稀疏体素模型，它能够以与神经辐射场（NeRF）相同的保真度进行优化，但**不需要任何神经网络**。这一模型在单GPU上的典型优化时间仅为11分钟，比NeRF快两个数量级​​​​。
+    * Plenoxel模型是一种基于视角依赖的**稀疏**体素模型，它能够以与神经辐射场（NeRF）相同的保真度进行优化，但**不需要任何神经网络**。这一模型在单GPU上的典型优化时间仅为11分钟，比NeRF快两个数量级​​​​。
 
 3. [Direct Voxel Grid Optimization: Super-fast Convergence for Radiance Fields Reconstruction](https://arxiv.org/abs/2111.11215.pdf) | CVPR2022_401 | [github](https://github.com/sunset1995/DirectVoxGO)  
-    * 此文提出了一种用于重建每个场景的辐射场的超快收敛方法。这种方法的关键是直接优化在密集体素网格中建模的体积密度。与NeRF和它的变体不同，这种方法不需要从任何训练过的隐式模型转换步骤或跨场景预训练，而是可以直接且高效地从头开始为每个场景进行训练​​。
+    * 此文提出了一种用于重建每个场景的辐射场的超快收敛方法。这种方法的关键是**直接优化在密集体素网格中建模的体积密度**。与NeRF和它的变体不同，这种方法不需要从任何训练过的隐式模型转换步骤或跨场景预训练，而是可以直接且高效地从头开始为每个场景进行训练​​。
 
 
 #### 3.1.3 一般化Generalization
@@ -87,7 +102,7 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
 4. [MVSNeRF: Fast Generalizable Radiance Field Reconstruction from Multi-View Stereo](https://apchenstu.github.io/mvsnerf/) | ICCV2021_378 | [github](https://github.com/apchenstu/mvsnerf)  
     * 将多视角立体视觉（Multi-View Stereo, MVS）和NeRF结合。传统的NeRF方法在处理新场景时需要长时间的训练。MVSNeRF通过特殊的网络设计和训练策略（设计了一种高效的数据处理流程，能够快速处理输入的多视角图像），实现了对新场景的快速适应，即使是在只有有限视角数据的情况下也能快速重建出高质量的三维场景。作者在多种场景下都显示出了良好的适应性和泛化能力，例如室内外场景、历史遗迹、自然景观等，显示了其在实际应用中的潜力。
  
-5. [IBRNet: Learning Multi-View Image-Based Rendering](https://ibrnet.github.io/static/paper.pdf) | CVPR202_459 | [github](https://github.com/googleinterns/IBRNet)   
+5. [IBRNet: Learning Multi-View Image-Based Rendering](https://ibrnet.github.io/static/paper.pdf) | CVPR2021_459 | [github](https://github.com/googleinterns/IBRNet)   
     * 论文提出了一种自适应特征聚合机制，能够从多个输入图像中有效地提取和融合信息。这种机制使得网络能够根据不同场景自动调整其处理方式，提高了渲染质量和泛化能力。
 
 6. [pi-GAN: Periodic Implicit Generative Adversarial Networks for 3D-Aware Image Synthesis](https://marcoamonteiro.github.io/pi-GAN-website/) | CVPR2021_572  
@@ -106,8 +121,13 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
 
 #### 3.1.4 Video
 
+5. [DynIBaR: Neural Dynamic Image-Based Rendering](https://dynibar.github.io/) | CVPR2023_24 | [github](https://github.com/google/dynibar)  
+    * 动态场景的新视角合成——论文解决了从单目视频中合成复杂动态场景新视角的问题。传统基于时间变化的NeRF（动态NeRF）在处理长视频、复杂物体运动和不受控相机轨迹时，可能产生模糊或不准确的渲染。DynIBaR通过采用基于体素的图像渲染框架来改善这些限制，该框架通过聚合邻近视图中的特征，并以对场景运动敏感的方式来合成新的视点。
+
 1. [UV Volumes for Real-time Rendering of Editable Free-view Human Performance](https://fanegg.github.io/UV-Volumes/) | CVPR2023_10 | [github](https://github.com/fanegg/UV-Volumes)  
-    * **UV体积技术**是一种新型的数据结构，它将3D空间中的人体表演编码为一系列2D纹理图，这些图通过UV映射关联到3D空间。这种方法相比传统的3D模型或点云表示，可以更高效地处理和渲染复杂的人体动作。该技术支持实时渲染，能够在没有预先渲染的情况下快速生成高质量的图像。这对于需要实时反馈的应用场景（如虚拟现实或交互式游戏）非常重要。
+    * **UV体积技术**是一种新型的数据结构，它将3D空间中的人体表演编码为一系列2D纹理图，这些图通过UV映射关联到3D空间。这种方法相比传统的3D模型或点云表示，可以更高效地处理和渲染复杂的人体动作。该技术支持实时渲染，能够在没有预先渲染的情况下快速生成高质量的图像。这对于需要实时反馈的应用场景（如虚拟现实或交互式游戏）非常重要。  
+
+6. [HumanNeRF: Free-viewpoint Rendering of Moving People from Monocular Video](https://grail.cs.washington.edu/projects/humannerf/) | CVPR2022_198 | [github](https://github.com/chungyiweng/humannerf)  
 
 2. [Neural 3D Video Synthesis from Multi-view Video](https://neural-3d-video.github.io/) | CVPR2022_156
     * 多视角观察动态场景视频。通过分析这些视角，算法能够理解场景的3D结构。多视角视频合成三维视频，不仅包含时间上的动态变化，还包含空间上的深度和体积感。
@@ -120,10 +140,45 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
 4. [Neural Body: Implicit Neural Representations with Structured Latent Codes for Novel View Synthesis of Dynamic Humans](https://zju3dv.github.io/neuralbody/) | CVPR2021_415 | [github](https://github.com/zju3dv/neuralbody)  
     * Neural Body使用隐式神经网络来表示动态人体。这种表示方法不依赖于传统的3D网格或点云模型，而是通过连续的函数来描述人体的3D结构。论文引入了结构化潜码的概念，这些潜码能够捕捉动态人体的不同部位的动态变化。通过这种方式，模型能够更好地理解和重现人体动态。
 
+#### 3.1.5 可编辑性
+
+1. [SINE: Semantic-driven Image-based NeRF Editing with Prior-guided Editing Field](https://zju3dv.github.io/sine/) | CVPR_2023_23 | [github](https://github.com/zju3dv/SINE)
+    * SINE是一种基于语义驱动的图像编辑方法，它允许用户通过单视图图像或文本提示来编辑逼真的神经辐射场，并能渲染出具有生动细节和多视角一致性的编辑后的新视角。
+    * SINE提出了一种先验引导的 “编辑场”，用于在3D空间中编码精细的几何和纹理编辑。这包括循环约束与代理网格以促进几何监督，颜色合成机制以稳定语义驱动的**纹理编辑**，以及基于特征聚类的正则化以保持不相关内容不变​​。
+
+2. [CLIP-NeRF: Text-and-Image Driven Manipulation of Neural Radiance Fields](https://cassiepython.github.io/clipnerf/) | CVPR2022_190 | [github](https://github.com/cassiePython/CLIPNeRF)
+    * 多模态3D对象操控：CLIP-NeRF是首个实现使用文本提示或样例图像对NeRF进行操控的方法。它结合了最新的Contrastive Language-Image Pre-Training (CLIP)模型的联合语言-图像嵌入空间，提供了一个统一的框架，允许用户友好地使用文本提示或样例图像来操控NeRF（实时编辑）。
+
+
+#### 3.1.6 姿态估计（Pose Estimation）
+
+1. [Loc-NeRF: Monte Carlo Localization using Neural Radiance Fields](https://arxiv.org/abs/2209.09050) | ICRA2023_33 | [github](https://github.com/MIT-SPARK/Loc-NeRF)
+    * Loc-NeRF结合了Monte Carlo定位方法和NeRF，提出了一种实时的**基于视觉的机器人定位方法**。该系统使用预先训练的NeRF模型作为环境地图，并能够仅使用机器人上的RGB摄像头实时定位自身。
+    * Loc-NeRF提出了一个6DoF（六自由度）姿态估计管道，该管道使用基于粒子滤波的Monte Carlo定位方法从NeRF中提取姿态。该管道在滤波器的更新步骤中使用NeRF作为地图模型，并在预测步骤中使用视觉惯性测量或机器人动态进行高精度的运动估计。
+    * 适用于真实世界数据的实时跟踪：除了在合成数据上的测试外，研究者还使用由Clearpath Jackal UGV（无人地面车辆）收集的真实数据运行了系统，并首次展示了使用神经辐射场进行实时全球定位的能力。
+
+2. [L2G-NeRF: Local-to-Global Registration for Bundle-Adjusting Neural Radiance Field](https://rover-xingyu.github.io/L2G-NeRF/) | CVPR2023_12 | [github](https://github.com/rover-xingyu/L2G-NeRF)  
+    * L2G-NeRF提出了一种从本地到全局的注册方法，用于在NeRF中调整光束。这种方法首先进行**像素级**的灵活对齐，然后是**帧级**的受约束的参数对齐。像素级的本地对齐是通过一个深度网络以无监督的方式学习的，该网络通过优化光度重建误差来实现。帧级的全局对齐是使用可微分的参数估计求解器在像素级对应关系上执行的，以找到全局变换。
+    * 在合成和真实世界数据上的实验表明，L2G-NeRF在**高保真重建**和**解决大范围相机姿态误差方面**优于当前的最先进方法。该模块是易于使用的**插件**，可以**应用于NeRF的各种变体和其他神经场应用**。
+
+3. [BARF: Bundle-Adjusting Neural Radiance Fields](https://chenhsuanlin.bitbucket.io/bundle-adjusting-NeRF/) |ICCV2021_346
+    * BARF提出了一种方法，用于**从不完美或未知的相机姿态中训练NeRF**。这一点在处理真实世界场景中常见的相机姿态不确定性时尤为重要。
+    * 研究发现，简单地应用位置编码在NeRF中对于基于合成的目标有负面影响。这一发现对于优化NeRF的性能和准确性具有重要意义。
 
 
 
-#### 3.1.5 多分辨率表示
+
+#### 3.1.7 光照
+
+1. [NeRV: Neural Reflectance and Visibility Fields for Relighting and View Synthesis](https://people.eecs.berkeley.edu/~pratul/nerv/) | CVPR2021_383
+    * NeRV方法接受一组在已知照明条件下拍摄的场景图像作为输入，并输出一个可以在任意照明条件下从新视角渲染的3D表示。这使得用户能够在**改变照明条件下**重新渲染场景，包括间接照明效果​​。传统的NeRF方法仅能模拟来自特定位置的光的出射量，而没有考虑入射光和物体表面材质属性之间的相互作用。这限制了NeRF在重新照明（relighting）方面的应用。NeRV通过**引入表面法线和材质参数的模型**，解决了这一问题​​。
+
+2. [NeRD: Neural Reflectance Decomposition from Image Collections](https://markboss.me/publication/2021-nerd/) | Arxiv2020_316 | [github](https://github.com/cgtuebingen/NeRD-Neural-Reflectance-Decomposition)
+    * NeRD使用基于**物理的渲染方法**对场景进行**分解**，将其分为具有**空间变化的双向反射分布函数（BRDF）材料属性**。这与现有技术不同，NeRD的输入图像可以在不同的照明条件下捕获。此外，还提出了一种将学习到的反射率体积转换为可重照明的纹理网格的技术，从而实现了**在新的照明条件下快速实时渲染**​​。
+
+
+
+#### 3.1.8 多分辨率表示
 
 1. [Variable Bitrate Neural Fields](https://nv-tlabs.github.io/vqad/) | SIGGRAPH2022_50 | [github](https://github.com/nv-tlabs/vqad)  
     **Vector-Quantized Auto-Decoder (向量量化自解码器VQ-AD)** 直接学习没有直接监督的信号的压缩特征网格。这种方法支持数据的渐进式、可变比特率流，允许根据可用带宽或所需的细节级别调整质量。  
@@ -132,8 +187,13 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
     压缩特征网格的字典方法，将其内存消耗降低了高达100倍。
  
 
+#### 3.1.9 无约束照片输入
 
-
+1. [NeRF in the Wild: Neural Radiance Fields for Unconstrained Photo Collections](https://nerf-w.github.io/) | CVPR2021_842
+    * **适应未经约束的照片集合**，特别是互联网上的旅游地标照片集合。NeRF-W针对从未经约束的照片集合中合成复杂场景的新视角。与传统NeRF不同，它能处理诸如变化的照明或暂时遮挡物等真实世界现象。
+    * NeRF-W放宽了NeRF的严格一致性假设，解决了典型的NeRF在处理现实世界数据集时遇到的问题。例如，NeRF要求同一位置和方向拍摄的任何两张照片必须是相同的，但在现实世界的数据集中，这种假设通常会被违反。
+    * NeRF-W通过学习低维潜在空间来模拟每幅图像的外观变化，如曝光、照明、天气和后期处理。这种方法通过学习整个照片集合的共享外观表示来解释图像之间的光度和环境变化。
+    * 场景内容的自动分解：NeRF-W将场景建模为**共享和图像依赖的元素的组合**，从而实**现场景内容的“静态”和“暂时”组件的无监督分解**。这种方法使用次要体积辐射场和数据依赖的不确定性场来模拟暂时元素。
 
 
 
@@ -146,6 +206,27 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
 1. [3D Neural Scene Representations for Visuomotor Control](https://3d-representation-learning.github.io/nerf-dy/) | CoRL2021_80   
     * 这项研究集中于将3D神经场景表示应用于机器人和自动控制系统，以提高它们对环境的理解和交互能力。
 
+2. [Loc-NeRF: Monte Carlo Localization using Neural Radiance Fields](https://arxiv.org/abs/2209.09050) | ICRA2023_33 | [github](https://github.com/MIT-SPARK/Loc-NeRF)
+    * Loc-NeRF结合了Monte Carlo定位方法和NeRF，提出了一种实时的**基于视觉的机器人定位方法**。该系统使用预先训练的NeRF模型作为环境地图，并能够仅使用机器人上的RGB摄像头实时定位自身。
+    * Loc-NeRF提出了一个6DoF（六自由度）姿态估计管道，该管道使用基于粒子滤波的Monte Carlo定位方法从NeRF中提取姿态。该管道在滤波器的更新步骤中使用NeRF作为地图模型，并在预测步骤中使用视觉惯性测量或机器人动态进行高精度的运动估计。
+    * 适用于真实世界数据的实时跟踪：除了在合成数据上的测试外，研究者还使用由Clearpath Jackal UGV（无人地面车辆）收集的真实数据运行了系统，并首次展示了使用神经辐射场进行实时全球定位的能力。
+
+
+#### 3.2.2 实时训练
+
+1. [iMAP: Implicit Mapping and Positioning in Real-Time](https://edgarsucar.github.io/iMAP/) | ICCV2021_270
+    * iMAP首次展示了如何将多层感知机（MLP）用作实时SLAM系统中唯一的场景表示，**适用于手持RGB-D摄像头**。这个网络在实时操作中进行训练，无需先验数据，构建了一个密集的、场景特定的隐式3D模型，用于占用空间和颜色表示，同时也立即用于跟踪​​。
+
+#### 3.2.3 合成 (Compositionality)
+
+1. [GIRAFFE: Representing Scenes as Compositional Generative Neural Feature Fields](https://arxiv.org/abs/2011.12100) | CVPR2021_649
+    * 与NeRF类似，GIRAFFE引入了一种组合式3D场景表示，这种表示方式将场景视为一系列可控的生成神经特征场。这允许模型区分单个对象与背景，以及它们的形状和外观，而无需显式的监督。
+
+2. [Learning Object-Compositional Neural Radiance Field for Editable Scene Rendering](https://zju3dv.github.io/object_nerf/) | ICCV2021_175 | [github](https://github.com/zju3dv/object_nerf)
+    * 这项研究提出了一种对象合成的神经辐射场，使得系统不仅能够进行静态场景的新视角合成，而且还具有对象级别编辑的能力。它通过学习场景中的单独对象和整体场景来实现更高级别的编辑任务，如移动或添加家具。
+
+
+### 其他：深度估计/ 大尺度场景/ 模型重构/ 多规模/ 类别/ 场景打标与理解 等
 
 ## Review
 
