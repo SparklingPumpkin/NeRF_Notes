@@ -8,22 +8,39 @@ Filter criteria: literature review/ most cited by papers/ newest
 
 *2019_CVPR/ ICCV*
 
-1. Occupancy networks 
-2. IM-Net
-3. DeepSDF
-4. PIFu
+NeRF 由 **神经网络定义隐式表面** 的一众方法发展而来。**神经网络定义隐式表面**，即使用神经网络作为标量函数近似器来定义占用率/ 符号距离函数，作为3D物体表面。
+
+隐式神经网络网络并不直接输出特定格式的结果，而是学习了一个能够对任意查询点返回相关属性的函数。例如，神经辐射场（NeRF）可以根据输入的3D坐标返回颜色和密度。相比起来，“显式”神经网络会输出明确结果，如图像识别、语音识别、NLP等。
+
+*更早的时候，许多 3D 感知图像生成方法使用体素、网格、点云或其他表示形式，通常基于卷积架构。*
+
+1. Occupancy networks/ IM-Net 隐式的、基于坐标占用（二进制占用）的方法。只能计算白模，无法渲染出颜色。
+2. DeepSDF（Signed Distance Function）使用神经网络学习形状的连续SDF。只能计算白模，无法渲染出颜色。   
+*SDF —— 用于描述一个形状或物体的表面。SDF的核心概念是定义一个函数，这个函数对于空间中的每个点，给出该点到最近表面的距离，以及该点是在表面内部还是外部。*
+3. PIFu 使用一种基于深度学习（含CNN）的隐式函数，该函数对于给定图像（单张或多张集成），从像素对齐的特征中回归颜色和 SDF，从而实现单视图重建。
+4. ……
+
+[Neural Volumes: Learning Dynamic Renderable Volumes from Images] 与NeRF类似，也使用 *体积渲染* 将输入图像转换为3D体积表示。
 
 
 ## 2. NeRF
 
+基于以上 隐式神经方法，NeRF 取得了更好的渲染效果。从本质上讲，NeRF依然采用了 DeepSDF 架构，但回归的不是有符号距离函数，而是密度和颜色。
+
+之所以能取得如此好的渲染效果，很大程度上得益于其 *位置编码*，在在隐式表面的高频变化方向得到了很好的效果。这项创新后来被推广到具有**周期性激活的多层网络**，又名 SIREN（SInusoidal REpresentation Networks），详见：
+* *[Implicit Neural Representations
+with Periodic Activation Functions](https://www.vincentsitzmann.com/siren/) 这篇文章的主要提供了一种神经网络优化方法，非常泛用，在图像、视频、音频、3D模型的细节方面都处理得很好。*
+
 NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标并输出密度和颜色。因此，也留下了许多可以改进之处，如：  
 * 训练、渲染慢
 * 仅能表示静态场景
-* it bakes lighting，失去了动态光的灵活性
+* it bakes lighting，失去了动态光的灵活性，无法改变光的方向
 * A trained NeRF 无法泛化
-* NeRF训练的模型无法编辑纹理贴图。
+* NeRF训练的模型无法编辑纹理贴图
+* 相机位置苛刻，需要的相片数量多，实际应用受到限制
+* ……
 
-这四点都很重要。
+这几点都很重要。
 
 ## 3. NeRF_Improved
 
@@ -55,6 +72,7 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
 
 
 #### 3.1.2 加快训练
+*体素网格非常火热*
 
 1. [TensoRF: Tensorial Radiance Fields](https://apchenstu.github.io/TensoRF/) | ECCV2022_405 | [github](https://github.com/apchenstu/TensoRF)   
     **TensoRF (Tensorial Radiance Fields，张量辐射场)**，在NeRF的基础上，该方法首次从张量角度看待辐射场建模，并将辐射场重建问题作为低秩张量重构之一提出。TensoRF将场景的辐射场建模为 4D 张量（显式体素特征网格，不是简单的特征网格），表示具有每个体素多通道特征的 3D 体素网格——**x, y, z和一个特征，这个特征是一个通道，涵盖颜色、视角等**。优势：
@@ -80,22 +98,7 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
 
 #### 3.1.3 一般化Generalization
 
-1. [Rodin: A generative model for sculpting 3d digital avatars using diffusion](https://3d-avatar-diffusion.microsoft.com/) | CVPR2023_44 | [github](https://3d-avatar-diffusion.microsoft.com/)  
-    * 使用扩散模型自动生成以神经辐射场（Neural Radiance Fields, NeRF）表示的3D数字化头像。 
-    * 为了解决在生成高品质头像时所需的丰富细节所带来的巨大内存和计算成本，论文提出了卷展扩散网络（Rodin）。Rodin将神经体积表示为多个2D特征图，并将这些图卷展到一个单一的2D特征平面中，然后在该平面内进行3D感知的扩散。这使得Rodin模型在保持扩散在3D中的完整性的同时，带来了急需的计算效率​​。
-    * 3D感知卷积——明确考虑到一个2D特征在三面体平面（tri-plane）中的一个平面上是从3D数据中投影出来的，与其他两个平面上相同数据的投影特征内在相关，借此跨平面通信，同步细节的合成，以反映它们在3D中的关系。  
-    * Rodin模型使用潜在向量来调控特征生成，使其在整个3D体积中全局一致，从而产生更高质量的头像，并支持基于文本提示的语义编辑。这是通过使用训练数据集中的头像来训练一个额外的图像编码器实现的，该编码器提取一个语义潜在向量作为扩散模型的条件输入。此外，模型采用了冻结的CLIP图像编码器，该编码器与文本提示共享潜在空间​​。
-
-2. [Point-NeRF: Point-based Neural Radiance Fields](https://xharlie.github.io/projects/project_sites/pointnerf/index.html) | CVPR2022_187 | [github](https://github.com/Xharlie/pointnerf)  
-    * 作者结合了NeRF（神经辐射场）和基于点云的深度多视图立体视觉（Multi-View Stereo, MVS）技术的优势，以解决现有方法在重建和渲染**高质量头像**时面临的一些挑战。以下是该论文的主要改进点：
-    * 点基神经辐射场（Point-NeRF）表示：Point-NeRF使用**神经3D点云**及其相关的神经特征来模拟辐射场，每个神经点编码了其周围局部3D场景的几何和外观信息。这种表示形式不仅提高了渲染质量，而且使得模型能够更有效地重建和渲染场景，尤其是在避免在空场景空间中进行射线采样方面​​。
-    * 基于点云的高效初始化和优化：Point-NeRF可以通过预训练的深度神经网络直接推断来初始化，生成一个神经点云。与仅依赖于每个场景拟合的NeRF不同，这种方法允许在短时间内对每个场景进一步优化，实现了更快速和精确的头像重建和渲染​​。
-    * 处理重建点云中的错误和离群值：在处理像COLMAP这样的重建技术生成的点云时，Point-NeRF引入了点增长和剪枝机制。这一机制有效地改进了最终的重建和渲染质量，特别是在填补大型空洞和产生逼真渲染方面​​。
-    * 更精细的局部场景几何和外观建模：与全局MLP编码整个场景空间的传统NeRF方法相比，Point-NeRF利用精细的神经点来模拟复杂的局部场景几何和外观，从而提供了更好的渲染质量​​。
-    * 适应实际表面的点基表示：与基于体素网格的局部神经辐射表示相比，Point-NeRF的点基表示更好地适应了实际表面，从而提供了更高的质量。此外，该模型直接预测良好的初始神经点特征，绕过了大多数基于体素的方法所需的每个场景优化​​。
-    * 神经点与空间变化的神经特征结合：Point-NeRF利用具有空间变化神经特征的神经点来编码其辐射场。这种局部化表示可以比纯粹的MLP（具有有限的网络容量）模拟更复杂的场景内容。更重要的是，Point-NeRF展示了其点基神经场可以通过预训练的深度神经网络高效初始化，并在场景中普遍实现高效的辐射场重建​​。
-
-3. [SinNeRF: Training Neural Radiance Fields on Complex Scenes from a Single Image](https://vita-group.github.io/SinNeRF/) | ECCV2022_81 | [github](https://github.com/VITA-Group/SinNeRF)  
+1. [SinNeRF: Training Neural Radiance Fields on Complex Scenes from a Single Image](https://vita-group.github.io/SinNeRF/) | ECCV2022_81 | [github](https://github.com/VITA-Group/SinNeRF)  
     * 该研究聚焦于使用单张图像来训练复杂场景的NeRF。
     * 通过创新的网络架构和训练策略，SinNeRF能够从二维图像中推断出三维空间的信息，这使得从单一视角图像生成的三维场景具有逼真的深度感和细节。尽管只依赖单一图像，SinNeRF依然能够处理和重建复杂的场景。这包括丰富的纹理、复杂的光照条件和细节丰富的几何结构。
 
@@ -151,6 +154,7 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
 
 
 #### 3.1.6 姿态估计（Pose Estimation）
+*从不完美的相机位置计算相同品质的内容*
 
 1. [Loc-NeRF: Monte Carlo Localization using Neural Radiance Fields](https://arxiv.org/abs/2209.09050) | ICRA2023_33 | [github](https://github.com/MIT-SPARK/Loc-NeRF)
     * Loc-NeRF结合了Monte Carlo定位方法和NeRF，提出了一种实时的**基于视觉的机器人定位方法**。该系统使用预先训练的NeRF模型作为环境地图，并能够仅使用机器人上的RGB摄像头实时定位自身。
@@ -196,7 +200,10 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
     * 场景内容的自动分解：NeRF-W将场景建模为**共享和图像依赖的元素的组合**，从而实**现场景内容的“静态”和“暂时”组件的无监督分解**。这种方法使用次要体积辐射场和数据依赖的不确定性场来模拟暂时元素。
 
 
+#### 3.1.10 利用先验知识
 
+1. [Dense Depth Priors for Neural Radiance Fields from Sparse Input Views](https://barbararoessle.github.io/dense_depth_priors_nerf/)
+    * 密集深度先验来优化神经辐射场，以从少量输入图像渲染出完整房间的新视角。深度驱动的先验 —— 使用深度信息来辅助模型更准确地推断场景的三维结构。
 
 ### 3.2 Application
 *扩展NeRF的应用*
@@ -217,7 +224,8 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
 1. [iMAP: Implicit Mapping and Positioning in Real-Time](https://edgarsucar.github.io/iMAP/) | ICCV2021_270
     * iMAP首次展示了如何将多层感知机（MLP）用作实时SLAM系统中唯一的场景表示，**适用于手持RGB-D摄像头**。这个网络在实时操作中进行训练，无需先验数据，构建了一个密集的、场景特定的隐式3D模型，用于占用空间和颜色表示，同时也立即用于跟踪​​。
 
-#### 3.2.3 合成 (Compositionality)
+#### 3.2.3 合成大场景 (Compositionality)
+![Alt text](image-3.png)
 
 1. [GIRAFFE: Representing Scenes as Compositional Generative Neural Feature Fields](https://arxiv.org/abs/2011.12100) | CVPR2021_649
     * 与NeRF类似，GIRAFFE引入了一种组合式3D场景表示，这种表示方式将场景视为一系列可控的生成神经特征场。这允许模型区分单个对象与背景，以及它们的形状和外观，而无需显式的监督。
@@ -226,7 +234,32 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
     * 这项研究提出了一种对象合成的神经辐射场，使得系统不仅能够进行静态场景的新视角合成，而且还具有对象级别编辑的能力。它通过学习场景中的单独对象和整体场景来实现更高级别的编辑任务，如移动或添加家具。
 
 
-### 其他：深度估计/ 大尺度场景/ 模型重构/ 多规模/ 类别/ 场景打标与理解 等
+#### 3.2.4 头像
+
+1. [Rodin: A generative model for sculpting 3d digital avatars using diffusion](https://3d-avatar-diffusion.microsoft.com/) | CVPR2023_44 | [github](https://3d-avatar-diffusion.microsoft.com/)  
+    * 使用扩散模型自动生成以神经辐射场（Neural Radiance Fields, NeRF）表示的3D数字化头像。 
+    * 为了解决在生成高品质头像时所需的丰富细节所带来的巨大内存和计算成本，论文提出了卷展扩散网络（Rodin）。Rodin将神经体积表示为多个2D特征图，并将这些图卷展到一个单一的2D特征平面中，然后在该平面内进行3D感知的扩散。这使得Rodin模型在保持扩散在3D中的完整性的同时，带来了急需的计算效率​​。
+    * 3D感知卷积——明确考虑到一个2D特征在三面体平面（tri-plane）中的一个平面上是从3D数据中投影出来的，与其他两个平面上相同数据的投影特征内在相关，借此跨平面通信，同步细节的合成，以反映它们在3D中的关系。  
+    * Rodin模型使用潜在向量来调控特征生成，使其在整个3D体积中全局一致，从而产生更高质量的头像，并支持基于文本提示的语义编辑。这是通过使用训练数据集中的头像来训练一个额外的图像编码器实现的，该编码器提取一个语义潜在向量作为扩散模型的条件输入。此外，模型采用了冻结的CLIP图像编码器，该编码器与文本提示共享潜在空间​​。
+
+2. [Point-NeRF: Point-based Neural Radiance Fields](https://xharlie.github.io/projects/project_sites/pointnerf/index.html) | CVPR2022_187 | [github](https://github.com/Xharlie/pointnerf)  
+    * 作者结合了NeRF（神经辐射场）和基于点云的深度多视图立体视觉（Multi-View Stereo, MVS）技术的优势，以解决现有方法在重建和渲染**高质量头像**时面临的一些挑战。以下是该论文的主要改进点：
+    * 点基神经辐射场（Point-NeRF）表示：Point-NeRF使用**神经3D点云**及其相关的神经特征来模拟辐射场，每个神经点编码了其周围局部3D场景的几何和外观信息。这种表示形式不仅提高了渲染质量，而且使得模型能够更有效地重建和渲染场景，尤其是在避免在空场景空间中进行射线采样方面​​。
+    * 基于点云的高效初始化和优化：Point-NeRF可以通过预训练的深度神经网络直接推断来初始化，生成一个神经点云。与仅依赖于每个场景拟合的NeRF不同，这种方法允许在短时间内对每个场景进一步优化，实现了更快速和精确的头像重建和渲染​​。
+    * 处理重建点云中的错误和离群值：在处理像COLMAP这样的重建技术生成的点云时，Point-NeRF引入了点增长和剪枝机制。这一机制有效地改进了最终的重建和渲染质量，特别是在填补大型空洞和产生逼真渲染方面​​。
+    * 更精细的局部场景几何和外观建模：与全局MLP编码整个场景空间的传统NeRF方法相比，Point-NeRF利用精细的神经点来模拟复杂的局部场景几何和外观，从而提供了更好的渲染质量​​。
+    * 适应实际表面的点基表示：与基于体素网格的局部神经辐射表示相比，Point-NeRF的点基表示更好地适应了实际表面，从而提供了更高的质量。此外，该模型直接预测良好的初始神经点特征，绕过了大多数基于体素的方法所需的每个场景优化​​。
+    * 神经点与空间变化的神经特征结合：Point-NeRF利用具有空间变化神经特征的神经点来编码其辐射场。这种局部化表示可以比纯粹的MLP（具有有限的网络容量）模拟更复杂的场景内容。更重要的是，Point-NeRF展示了其点基神经场可以通过预训练的深度神经网络高效初始化，并在场景中普遍实现高效的辐射场重建​​。
+
+### 其他
+    * 关节对象/ 深度估计/ 大场景/ 模型重构/ 多规模/ 类别/ 场景打标与理解/ 基础理论/ 先验知识 等
+
+
+### 3.3 其他方向
+
+1. [NeRF in the Dark:
+High Dynamic Range View Synthesis from Noisy Raw Images](https://bmild.github.io/rawnerf/index.html) 
+    * 这篇的渲染质量非常好，是特化黑暗环境下的方法。
 
 ## Review
 
@@ -235,5 +268,30 @@ NeRF原论文效果好，并且模型简单 —— 仅仅使用MLP接受5D坐标
 [NeRF: Neural Radiance Field in 3D Vision, Introduction and Review](https://arxiv.org/abs/2210.00379)
 
 
+
+## 总结
+
+### NeRF发展
+
+刚提出时，NeRF本身有很多缺陷，如 其体积渲染的方法，既是优势也是劣势——
+
+NeRF可能因其基于体积的方法而易于训练，但也正是因为基于体积的方法，计算了很多不必要的内容（物体内部与外部空白）。虽然NeRF原项目就已经有了这方面的优化（分层采样），但最新的一些论文展示的结果显示，还可以做的更好 —— 只预测表面（回归SDF），或重新使用体素表示。
+
+但接近4年后的今天（2023/ 12，NeRF最初发表约在2020/ 01），提出新的观点优化NeRF（并且没有其他研究人员在做类似的工作）已经比较困难了。
+
+NeRF相关论文增长速度非常之快。  
+![Alt text](image-4.png)
+
+
+### 我能想到的方向
+
+- NeRF的优化这几年有非常之多的方向，每个方向也有不同的优化思路。是否可以集合众家之长处？  
+（我刚想到，搜了一下已经有了一个NeRF开源平台 —— [Nerfstudio](https://engineering.berkeley.edu/news/2023/07/researchers-create-open-source-platform-for-neural-radiance-field-development/)）
+- 渲染速度、质量的提升是无止境的，虽然目前已经优化的非常快了。虽然找到更快的方法可能是非常困难的。（实时渲染，在拍摄视频的同时直接构建隐式神经网络，对拍摄场景可以渲染出自定义的效果）
+- 小众方向，优化特定场景下的NeRF效果。如无人艇 等实际应用场景的特殊优化。
+- 与大模型方向结合。比如处理大规模的3D场景？
+- 多模态与NeRF结合，重现更加真实的场景。
+- 数学方向上的改进。受启发于体素网格的张量分解。
+- VR、AR。
 
 
