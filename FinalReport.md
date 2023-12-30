@@ -80,9 +80,9 @@ $\gamma$ 是 $R$ 到更高维 $R^{2L}$ 的映射；$F_{\Theta}^{\prime}$ 并且�
 $$F_{\Theta}=F_{\Theta}^{\prime}\circ\gamma $$
 $$\gamma(p)=\left(\sin\left(2^0\pi p\right),\cos\left(2^0\pi p\right),\:\cdots,\sin\left(2^{L-1}\pi p\right),\:\cos\left(2^{L-1}\pi p\right)\right)$$
 
-    一个通俗的理解: 对于 Positional Encoding，从一方面来讲，它将欧式空间的样本点投影到频率空间，也就是将点打散了，在欧式空间相近的点在频率空间就会很远。原本 MLP 很难拟合出“狭小”的欧式空间中的剧烈变化。但在 Positional Encoding 将样本点投影到频率空间后，这些“剧烈变化”在频率空间就显得相对平滑得多， MLP 就能够很轻易地在频率空间拟合出这些变化，但频率空间相较于欧式空间得求解空间大得多，所以 MLP 依旧需要花费大量的时间去拟合。
+    一个通俗的理解: 对于 Positional Encoding, 从一方面来讲, 它将欧式空间的样本点投影到频率空间, 也就是将点打散了, 在欧式空间相近的点在频率空间就会很远. 原本 MLP 很难拟合出“狭小”的欧式空间中的剧烈变化. 但在 Positional Encoding 将样本点投影到频率空间后, 这些“剧烈变化”在频率空间就显得相对平滑得多,  MLP 就能够很轻易地在频率空间拟合出这些变化, 但频率空间相较于欧式空间得求解空间大得多, 所以 MLP 依旧需要花费大量的时间去拟合. 
 
-    另一个理解: NeRF 想做的事情是表征欧式空间中的一个场，而 Positional Encoding 则是对欧式空间的三个轴分别引入了一组正交基函数，此时 MLP 的任务就可以看作是学习得到这三组正交基函数的**系数表示**，这个任务相比于让 MLP 去拟合高频特征显然要简单得多。
+    另一个理解: NeRF 想做的事情是表征欧式空间中的一个场, 而 Positional Encoding 则是对欧式空间的三个轴分别引入了一组正交基函数, 此时 MLP 的任务就可以看作是学习得到这三组正交基函数的**系数表示**, 这个任务相比于让 MLP 去拟合高频特征显然要简单得多. 
 
 6. 分层体积采样. 即使用两个网络 (粗略& 精细) 来表示场景. 先在粗采样点 $N_c$ 采样, 利用颜色计算采样光线上每个点可能为高密度点的概率, 再对密度高的区域点 $N_f$ 进行精细采样. 在所有 $N_c+N_f$ 个样本的基础上, 使用 之前的估计方程 计算光线的最终渲染颜色 $\hat{C}_f(r)$. 这有利于提升渲染精度, 提升训练/ 渲染速度.   
 - 作者粗细两个层分为两个MLP. 其本质是粗MLP输入的点稀疏, 这就决定了他能渲染出的细节的上限, 所以需要另一个细MLP. 
@@ -183,10 +183,10 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
     特征向量存储在网格的顶点处, 其分辨率 取 最粗 (Nmin) 和最细 (Nmax)分辨率之间的**几何级数**.  
     ![Alt text](images/image-7.png)
 
-    - Hash Table 本质上就是一个记录了离散映射关系的散列表 (记录着可反向传播训练的编码参数$\theta$. 这在普通位置编码是无法学习的)，作者通过如下方式实现了 Mapping：
-      - 将空间进行规范化，即将空间划分成网格。每个网格顶点都有其量化的坐标。同时初始化 Hash Table（即存有一堆值的列表）。
-      - 构建一个 Hash Function 从而建立每个网格顶点坐标到 Hash Table 的索引（图中网格顶点处圆内的数字就是对应的 Hash Table 的索引）。
-      - 对于输入的点 $x$，找到他相邻的网格顶点，然后利用 Hash Function 找到相应顶点在 Hash Table 的索引并取出对应的值；最后利用线性插值得到该点 $x$ 的值。
+    - Hash Table 本质上就是一个记录了离散映射关系的散列表 (记录着可反向传播训练的编码参数$\theta$. 这在普通位置编码是无法学习的), 作者通过如下方式实现了 Mapping：
+      - 将空间进行规范化, 即将空间划分成网格. 每个网格顶点都有其量化的坐标. 同时初始化 Hash Table（即存有一堆值的列表）. 
+      - 构建一个 Hash Function 从而建立每个网格顶点坐标到 Hash Table 的索引（图中网格顶点处圆内的数字就是对应的 Hash Table 的索引）. 
+      - 对于输入的点 $x$, 找到他相邻的网格顶点, 然后利用 Hash Function 找到相应顶点在 Hash Table 的索引并取出对应的值；最后利用线性插值得到该点 $x$ 的值. 
 
     * 自适应性: 作者将需要重建的 NeRF网格 映射到相应的固定大小的特征向量数组. 
       - 在**粗略分辨率**下, 从网格点到数组条目的映射为 1: 1
@@ -196,7 +196,7 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
 
       ***哈希冲突**: 网格顶点的数量超过 Hash Table 的容量（超过列表长度）, 多个网格顶点对应 Hash Table 上同一个值.*
 
-      相对通俗解释: 由于场景中大部分点是无效的 (通常关注的还是物体表面), 如果是无效区域的网格顶点和物体表面附近的网格顶点发生了冲突，那通过梯度反传，Hash Table 中的值（即特征向量）会更加关注物体表面区域，也就是Hash Table 中的特征主要是由物体表面附近的样本贡献的（或者说 Hash Table 的这个特征对恢复物体表面有显著作用），这很符合要求；另一方面，Hash Encoding 是由多个 Hash Table 组成，因此总存在没有被哈希冲突严重影响的有效特征，而 Instant-NGP 后接的 MLP 有能力处理这个哈希冲突，提取正确的特征来恢复目标表征。
+      相对通俗解释: 由于场景中大部分点是无效的 (通常关注的还是物体表面), 如果是无效区域的网格顶点和物体表面附近的网格顶点发生了冲突, 那通过梯度反传, Hash Table 中的值（即特征向量）会更加关注物体表面区域, 也就是Hash Table 中的特征主要是由物体表面附近的样本贡献的（或者说 Hash Table 的这个特征对恢复物体表面有显著作用）, 这很符合要求；另一方面, Hash Encoding 是由多个 Hash Table 组成, 因此总存在没有被哈希冲突严重影响的有效特征, 而 Instant-NGP 后接的 MLP 有能力处理这个哈希冲突, 提取正确的特征来恢复目标表征. 
 
     * 高效性: 
       - 哈希表查找操作的时间复杂度是常数时间 $O(1)$ (无论哈希表的大小如何, 查找操作的时间都是恒定的)
@@ -322,19 +322,19 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
 
     * 一种理解 (从信号角度): PE的计算中所有频段都会被考虑到, 也包括了可能**超出采样频率的高频信息 (位置编码的采样频率仍然不足以捕捉信号中高频部分的变化)** -- 锯齿 (混叠) 产生的主要原因 -- 而IPE通过计算期望, 只需要考虑到γ (x) 的边缘分布, 集成了PE特征, 当存在频率周期小于被集成的频率周期时, IPE的高频维度将向零收缩, 从而具有更好的抗锯齿性能. 
     
-      * 相对通俗地说, 越远的区域截断视锥越大，即积分区域越大，此时 Encoding 高频部分的均值迅速衰减到 0, 避免了远处样本点的突然出现的高频信号的影响. 相比 Mip-NeRF，NeRF 对深度没有那么敏感. 
+      * 相对通俗地说, 越远的区域截断视锥越大, 即积分区域越大, 此时 Encoding 高频部分的均值迅速衰减到 0, 避免了远处样本点的突然出现的高频信号的影响. 相比 Mip-NeRF, NeRF 对深度没有那么敏感. 
 
-      * 下图展示了近端 (蓝) 到远端 (红) 的采样方式对比. 近处细节多, 远处细节少. 当这一样本点处于较远位置，但它又具有高频信号时，则不利于 NeRF 的学习, 而 Mip-NeRF 改进了这一点
+      * 下图展示了近端 (蓝) 到远端 (红) 的采样方式对比. 近处细节多, 远处细节少. 当这一样本点处于较远位置, 但它又具有高频信号时, 则不利于 NeRF 的学习, 而 Mip-NeRF 改进了这一点
     ![Alt text](images/image-13.png)
 
-    * 缺点:  Mip-NeRF 相比 NeRF 能够非常有效且准确地构建 Multi-View 与目标物体的关系，但这也意味着即**相机姿态** 的偏差会容易使 Mip-NeRF 产生更严重的失真。不过NeRF本身就对相机姿态敏感, Mip-NeRF只是放大了这一缺点. 上面的工作就是解决方案之一. 
+    * 缺点:  Mip-NeRF 相比 NeRF 能够非常有效且准确地构建 Multi-View 与目标物体的关系, 但这也意味着即**相机姿态** 的偏差会容易使 Mip-NeRF 产生更严重的失真. 不过NeRF本身就对相机姿态敏感, Mip-NeRF只是放大了这一缺点. 上面的工作就是解决方案之一. 
 
 
 3. **处理边界** -- [Mip-nerf 360: Unbounded anti-aliased neural radiance fields](https://arxiv.org/abs/2111.12077) | CVPR2022_557 
 
     * Mip-NeRF 360 相较于 Mip-NeRF 主要是有三大贡献点：
-        * 为了处理 unbound 的情况，对坐标系进行了 收缩. 和另一篇处理边界文章 NeRF++ 有些许区别，NeRF++ 像是投影到单位球上，通过 $1/r$ 进行远近判断; 本篇将球体分为两层, 内层不做处理, 外层将无穷远 收缩至内层同半径的外层. 由于坐标系发生了变换， Mip-NeRF 中的 IPE 也进行了部分更改。
-        * 引入了 Proposed MLP。即轻量化处理density的小MLP
+        * 为了处理 unbound 的情况, 对坐标系进行了 收缩. 和另一篇处理边界文章 NeRF++ 有些许区别, NeRF++ 像是投影到单位球上, 通过 $1/r$ 进行远近判断; 本篇将球体分为两层, 内层不做处理, 外层将无穷远 收缩至内层同半径的外层. 由于坐标系发生了变换,  Mip-NeRF 中的 IPE 也进行了部分更改. 
+        * 引入了 Proposed MLP. 即轻量化处理density的小MLP
         * 引入 distortion-based regularizer , 消除浮块和一些空缺的地方. 
 
 
@@ -349,22 +349,22 @@ NeRF 的简化操作将物体的 geometry/material/lighting 耦合成了 density
 1. **开创** -- [Neural Reflectance Fields for Appearance Acquisition](https://arxiv.org/abs/2008.03824)
     * 不再将物体假设成光源 (发光粒子) , 而是带有反射性质的粒子, 光照则有外部的光源提供 (假设场景某处存在点光源点光源). 
 
-    * 光源在着色粒子的过程中也需要考虑光路上由其他粒子导致的衰减 -- Adaptive transmittance volume, 在已知光源的情况下，预计算好光源到空间中各个点的衰减程度，然后将这些衰减程度信息存入网格中，这样在渲染的过程中尽可以直接索引，而不用再进行光路上的积分计算. 
+    * 光源在着色粒子的过程中也需要考虑光路上由其他粒子导致的衰减 -- Adaptive transmittance volume, 在已知光源的情况下, 预计算好光源到空间中各个点的衰减程度, 然后将这些衰减程度信息存入网格中, 这样在渲染的过程中尽可以直接索引, 而不用再进行光路上的积分计算. 
     ![Alt text](images/image-14.png)
     * 这里采用了闪光灯假设, 实现起来比较苛刻, 即 利用闪光灯相机拍摄图片, 所以唯一光源与相机原点重合, 简化了计算. 
 
 2. **反射场和可见性场, 用于学习光照条件** -- [NeRV: Neural Reflectance and Visibility Fields for Relighting and View Synthesis](https://people.eecs.berkeley.edu/~pratul/nerv/)
-    * 在NRF的基础上, 假设光源未知. 建模了一个可优化的环境光照 $E$ 来表示未知的光照条件. $E$ 用两个角度表示环境光 (假设光源来自无穷远处，且与仅与视角方向有关) 
-    * 此外, NeRV 引入 Visibility, 是Adaptive transmittance volume的延申, 都**表示 "粒子能看到光源的程度"**，不同之处在于 NRF 是在做 Baking，通过预计算将这些信息存起来方便最终的渲染；而 NeRV 是用一个可学习的 MLP 来表示，希望在训练的过程中逐渐建模起来. 
+    * 在NRF的基础上, 假设光源未知. 建模了一个可优化的环境光照 $E$ 来表示未知的光照条件. $E$ 用两个角度表示环境光 (假设光源来自无穷远处, 且与仅与视角方向有关) 
+    * 此外, NeRV 引入 Visibility, 是Adaptive transmittance volume的延申, 都**表示 "粒子能看到光源的程度"**, 不同之处在于 NRF 是在做 Baking, 通过预计算将这些信息存起来方便最终的渲染；而 NeRV 是用一个可学习的 MLP 来表示, 希望在训练的过程中逐渐建模起来. 
 
 3. **引入SG**-- [NeRD: Neural Reflectance Decomposition from Image Collections](https://markboss.me/publication/2021-nerd/) | Arxiv2020_316 | [github](https://github.com/cgtuebingen/NeRD-Neural-Reflectance-Decomposition)
     * 在光照的建模上选择了可优化的 Spherical Gaussian. 
-    * NeRD 可以接受不同图片是在不同光照条件下拍摄获得的，但需要目标物体的 mask. 
+    * NeRD 可以接受不同图片是在不同光照条件下拍摄获得的, 但需要目标物体的 mask. 
 
 4. [NeILF++: Inter-reflectable Light Fields for Geometry and Material Estimation](https://yoyo000.github.io/NeILF_pp/) | ICCV2023_6
     * 比较全面的工作
-    * 之前一篇 NeILF 研究的问题是如何在给定重建mesh的情况下重建material，相当于拓展现有三维重建/ 计算摄影的管线，
-    * NeILF++ 统一了入射光与出射光，并与neural surface reconstruction做了很好的结合，真正实现了几何、材质、光照的共同优化。
+    * 之前一篇 NeILF 研究的问题是如何在给定重建mesh的情况下重建material, 相当于拓展现有三维重建/ 计算摄影的管线, 
+    * NeILF++ 统一了入射光与出射光, 并与neural surface reconstruction做了很好的结合, 真正实现了几何、材质、光照的共同优化. 
 
 
 ### 2.8. 回归神经隐式表面重建 (几何近似)
@@ -373,7 +373,7 @@ NeRF 的简化操作将物体的 geometry/material/lighting 耦合成了 density
     Neus 超越原先的神经隐式表面方法的原因之一就是它利用了NeRF良好的关注全局的能力
     * 核心任务 -- 用神经隐式SDF zero-level set表示表面 (之 使用可微分渲染解决多视角重建需要 mask 的问题)
     * 核心方法 -- SDF-guided Volume Rendering -- 设法用一个转换函数将 SDF $f(\mathbf{x}),\mathbf{x}=\mathbf{o}+\mathbf{d}t$ 转换成体积渲染中的权重值 $w(t)$, 用来实现 $C(\mathbf{o},\mathbf{v})=\int_0^{+\infty}w(t)c(\mathbf{p}(t),\mathbf{v})dt$ (就是NeRF的公式)
-    * 这个过程中, 通过一个可学习的标准差 s 来控制转换函数的带宽 (寻找可能是物体表面的区间)。一开始的带宽非常宽，利于学习到整体形状（低频信号），也便于优化。随着学习过程的深度，带宽越来越窄，越来越关注细节的优化（高频信号），Volume Rendering 越来越接近 Surface Rendering 的效果。
+    * 这个过程中, 通过一个可学习的标准差 s 来控制转换函数的带宽 (寻找可能是物体表面的区间). 一开始的带宽非常宽, 利于学习到整体形状（低频信号）, 也便于优化. 随着学习过程的深度, 带宽越来越窄, 越来越关注细节的优化（高频信号）, Volume Rendering 越来越接近 Surface Rendering 的效果. 
     * 具体来说这个转换得到的权值 $w(t)$ 应该满足
       * 无偏
     * 另外有一篇类似的VolSDF, 任务与本文相同, 方法也是通过转换函数得到权重参与积分, 但 VolSDF 则是通过控制采样的过程来实现 SDF-guided Volume Rending. 
@@ -399,33 +399,21 @@ NeRF 的简化操作将物体的 geometry/material/lighting 耦合成了 density
 
 重点关注 kplanes 在 nerfstudio 中扩展包的重构. 
 
-详见 render video 与 [Reproduce_kplanes_nerfstudio](Reproduce_kplanes_nerfstudio.md). 
+详见 
+- render video 
+- [Reproduce_kplanes_nerfstudio](Reproduce_kplanes_nerfstudio.md)
+- [github](https://github.com/SparklingPumpkin/fnspkg)
+- 
 
 ## 4. 总结展望
 
-### NeRF发展
-
-刚提出时，NeRF本身有很多缺陷，如 其体积渲染的方法，既是优势也是劣势——
-
-NeRF可能因其基于体积的方法而易于训练，但也正是因为基于体积的方法，计算了很多不必要的内容（物体内部与外部空白）。虽然NeRF原项目就已经有了这方面的优化（分层采样），但最新的一些论文展示的结果显示，还可以做的更好 —— 只预测表面（回归SDF），或重新使用体素表示。
-
-但接近4年后的今天（2023/ 12，NeRF最初发表约在2020/ 01），提出新的观点优化NeRF（并且没有其他研究人员在做类似的工作）已经比较困难了。
-
-NeRF相关论文增长速度非常之快。  
-![Alt text](image-4.png)
-
-
-### 我能想到的方向
-
-- NeRF的优化这几年有非常之多的方向，每个方向也有不同的优化思路。是否可以集合众家之长处？  
-（我刚想到，搜了一下已经有了一个NeRF开源平台 —— [Nerfstudio](https://engineering.berkeley.edu/news/2023/07/researchers-create-open-source-platform-for-neural-radiance-field-development/)）
-- 渲染速度、质量的提升是无止境的，虽然目前已经优化的非常快了。虽然找到更快的方法可能是非常困难的。（实时渲染，在拍摄视频的同时直接构建隐式神经网络，对拍摄场景可以渲染出自定义的效果）
-- 小众方向，优化特定场景下的NeRF效果。如无人艇 等实际应用场景的特殊优化。
-- 与大模型方向结合。比如处理大规模的3D场景？
-- 多模态与NeRF结合，重现更加真实的场景。
-- 数学方向上的改进。受启发于体素网格的张量分解。
-- VR、AR。
-- 
+- 渲染速度、质量的提升是无止境的, 虽然目前已经优化的非常快了. 虽然找到更快的方法可能是非常困难的. （实时渲染, 在拍摄视频的同时直接构建隐式神经网络, 对拍摄场景可以渲染出自定义的效果）
+- 小众方向, 优化特定场景下的NeRF效果. 如无人艇 等实际应用场景的特殊优化. 
+- 多模态与NeRF结合, 重现更加真实的场景. 
+- 数学方向上的改进. 受启发于体素网格的张量分解/ k-planes等方法. 
+- 架构更新, 如Mip-NeRF/ instant-ngp等. 
+- VR、AR
+- ......
 
 
 
