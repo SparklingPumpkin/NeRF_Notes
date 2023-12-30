@@ -50,7 +50,7 @@ NeRF 之所以能在众多同期方法中脱颖而出,得益于 NeRF 极佳的�
 #### 1.2.3. NeRF 实现细节
 
 1. 场景表示将一个连续场景表示为 5D 向量值函数, 其输入是 3D 位置和 2D 观看方向 $x = (x, y, z) , d = (θ, φ)$, 其输出是发射颜色和体积密度 $c = (R, G, B), σ$.   
-![Alt text](/images/image-1.png)
+![Alt text](image-1.png)
 
 1. 神经网络架构: 在重编码层之后, MLP $F_{\Theta}$  首先处理具有 8 个全连接层的输入 3D 坐标 $x$ (使用 ReLU 激活和每层 256 个通道) , 然后输出 σ 和 256  维特征向量. 然后, 该特征向量与相机光线的观看方向连接, 并传递到一个额外的全连接层 (使用 ReLU 激活和 128 个通道) , 该层输出与视图相关的 RGB 颜色. 这种方法分隔得方法可以促使多视图一致. 
 
@@ -161,9 +161,10 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
     - 减小模型大小 (CP < 4mb；VM < 75mb)    
     - 基于标准PyTorch, 实用性强
 
-    ![Alt text](/images/image.png)
+    ![Alt text](image.png)
+
     关于张量分解: 在经典的CP分解已经有较好效果的基础上, 本文提出了vector-matrix (VM) 分解. 张量分解: 应用最广泛的分解是 Tucker 分解和 CP 分解 (都可以看作是矩阵奇异值分解 SVD 的推广) , 两者结合为块项分解 (BTD) . 本文新提出的 VM (Vector-Matrix)  分解是 BTD 的一种. 
-        ![Alt text](/images/image-2.png)
+        ![Alt text](image-2.png)
         左图: CP分解, 将张量分解为向量外积之和. 右图: 我们的向量矩阵分解, 它将张量分解为向量矩阵外积的总和. 
 
 
@@ -181,7 +182,7 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
     所以, instant-ngp 不仅训练了权重参数 $\Phi$, 还训练了编码参数 $\theta$  
     这些超参数分为 $L$ 级 (分辨率级数), 每个级别包含最多 $T$ 个维度为 $F$ 的特征向量. 每个级别 (其中两个在下图中显示为红色和蓝色) 都是独立的.   
     特征向量存储在网格的顶点处, 其分辨率 取 最粗 (Nmin) 和最细 (Nmax)分辨率之间的**几何级数**.  
-    ![Alt text](/images/image-7.png)
+    ![Alt text](image-7.png)
 
     - Hash Table 本质上就是一个记录了离散映射关系的散列表 (记录着可反向传播训练的编码参数$\theta$. 这在普通位置编码是无法学习的), 作者通过如下方式实现了 Mapping：
       - 将空间进行规范化, 即将空间划分成网格. 每个网格顶点都有其量化的坐标. 同时初始化 Hash Table（即存有一堆值的列表）. 
@@ -233,7 +234,7 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
 
    其中, $\gamma(\mathbf{x})$ 表示位置编码 (就是在NeRF中用正弦余弦变换进行升维度以便提取高频特征的操作). 图像特征作为残差 (residual) 在NeRF的每一层中被整合. 
 
-   ![Alt text](/images/image-6.png)
+   ![Alt text](image-6.png)
 
        单视图case, 输入到优化的流程. 
        
@@ -247,7 +248,7 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
 1. **几何/ 语义标签半监督** -- [SinNeRF: Training Neural Radiance Fields on Complex Scenes from a Single Image](https://vita-group.github.io/SinNeRF/) | ECCV2022_81 | [github](https://github.com/VITA-Group/SinNeRF)  
     * 对于NeRF来说, 直接在单一视图重建会导致严重过拟合, 导致其他视角画面崩坏. SinNeRF 对此, 构建半监督框架卷积网络, 对看不见的视角提供特殊的约束 -- 几何约束和语义约束, 而不是图像. 
     * 通过创新的网络架构和训练策略, SinNeRF能够从单一二维图像中推断出三维空间的信息, 包括丰富的纹理、复杂的光照条件和细节丰富的几何结构. 
-    ![Alt text](/images/SinNeRF.drawio.01f837d9d69b1db62c00.jpg)
+    ![Alt text](SinNeRF.drawio.01f837d9d69b1db62c00.jpg)
     * **几何伪标签 & 深度一致性**: 通过使用现有的3D重建方法从单一图像中估计出**粗略的几何结构**, 产生所谓的**伪3D几何标签**. 这些伪标签不是完全精确的, 但提供了足够的几何信息来指导NeRF的训练. 例如其中的深度一致性约束, 渲染的图像在结构上应该与初始估计的3D几何结构相匹配. 
     * **语义伪标签 & 语义一致性**: 使用预训练的语义分割网络从单一视图中提取语义信息. 这些语义标签 (如物体边界、类别信息) 被用作额外的指导信息, 帮助NeRF理解场景中的不同物体和区域. 确保NeRF模型在渲染新视角时, 保持语义信息的一致性. 例如, 如果原始图像中的某个区域被标记为“树木”, 那么从新视角渲染的相同区域也应当被识别为“树木”. 
     * 为什么说是半监督? 由于伪标签不是真实的、完全准确的标签, 因此模型在训练过程中还需要依赖非监督学习的技术. 
@@ -259,7 +260,7 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
 
     4D volumes可以分解为6个平面, 3个平面代表空间+3个平面代表时间变化. 如下图:
 
-    ![Alt text](/images/image-9.png)
+    ![Alt text](image-9.png)
 
     为了得到一个四维点 $q =(x, y, z, t)$, 
     - a. 将该点投影到每个平面上
@@ -278,9 +279,9 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
 
 1. **将CLIP模型引入NeRF** -- [CLIP-NeRF: Text-and-Image Driven Manipulation of Neural Radiance Fields](https://cassiepython.github.io/clipnerf/) | CVPR2022_190 | [github](https://github.com/cassiePython/CLIPNeRF)
     * CLIP -- Contrastive Language-Image Pre-training, 基于对比 **文本-图像对** 的预训练方法或者模型. CLIP包括两个模型: Text Encoder和Image Encoder, 其中Text Encoder用来提取文本的特征, 可以采用NLP中常用的text transformer模型；而Image Encoder用来提取图像的特征, 可以采用常用CNN模型或者vision transformer. 
-    ![Alt text](/images/image-10.png)
+    ![Alt text](image-10.png)
     * CLIP-NeRF是首个实现使用 **文本提示 或 样例图像** 对NeRF进行操控的方法. 结合了最新的 CLIP 模型, 使用户能够实时编辑 NeRF 场景中的物体. 
-    * ![Alt text](/images/image-11.png)
+    * ![Alt text](image-11.png)
     * 架构如上. 首先学习一个 **Disentangled条件NeRF** , 它以位置编码、视图方向、形状代码和外观代码(Shape code, 提前匹配场景中的物体与shapecode, 用于后续改变物体形状样式) 作为输入和输出渲染图像这种分离的条件NeRF以一种**对抗性的方式**进行训练. 然后给定一个参考图像或文本提示, CLIP图像或文本编码器提取相应的形状和外观映射器的特征嵌入, 分别在潜在空间中倾斜一个局部步骤, 用于形状和外观操作. 这两个映射器的训练使用一个CLIP相似性损失与我们的预训练解纠缠条件NeRF. 
     * **Disentangled Conditional NeRF** -- 首先 Conditional NeRF 即将在NeRF mlp的输入的5D坐标额外加入shape code zs  and an appearance code za. Disentangled Conditional NeRF在此基础上提出新的架构, 以单独控制形状和外观, 解决了在形状和外观(颜色)条件间相互干扰的问题. 
 
@@ -316,7 +317,7 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
     * Mip-NeRF的解决方案和NeRF本质不同: NeRF渲染是要基于ray的, 然而Mip-NeRF是基于**视锥体**的, 能够通过解决 NeRF中忽略光线观察范围体积与大小的问题了, 从而解决以上的痛点, 更加适合处理multiscale的数据. 同时Mip-eRF不需要粗细两个MLP, 只用一个multiscale MLP就能完成
 
     * 视锥体 -- a.NeRF在从相机中心点出发射向当前pixel的一条射线上抽样一些列样本点x, 再通过positional encoding获得特称r(x)；然而, b.Mip-NeRF会从相机原点投射一个圆锥, 可以提取更大范围的表征. 
-    ![Alt text](/images/image-12.png)
+    ![Alt text](image-12.png)
 
     * 为了减少计算量, 作者提出使用**3D Gaussian来近似圆锥采样**. 并提出了用IPE (Integrated Positional Encoding) 来取代positional encoding. IPE 为多元高斯分布的positional encoding的期望值
 
@@ -325,7 +326,7 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
       * 相对通俗地说, 越远的区域截断视锥越大, 即积分区域越大, 此时 Encoding 高频部分的均值迅速衰减到 0, 避免了远处样本点的突然出现的高频信号的影响. 相比 Mip-NeRF, NeRF 对深度没有那么敏感. 
 
       * 下图展示了近端 (蓝) 到远端 (红) 的采样方式对比. 近处细节多, 远处细节少. 当这一样本点处于较远位置, 但它又具有高频信号时, 则不利于 NeRF 的学习, 而 Mip-NeRF 改进了这一点
-    ![Alt text](/images/image-13.png)
+    ![Alt text](image-13.png)
 
     * 缺点:  Mip-NeRF 相比 NeRF 能够非常有效且准确地构建 Multi-View 与目标物体的关系, 但这也意味着即**相机姿态** 的偏差会容易使 Mip-NeRF 产生更严重的失真. 不过NeRF本身就对相机姿态敏感, Mip-NeRF只是放大了这一缺点. 上面的工作就是解决方案之一. 
 
@@ -350,7 +351,7 @@ NeRF 的简化操作将物体的 geometry/material/lighting 耦合成了 density
     * 不再将物体假设成光源 (发光粒子) , 而是带有反射性质的粒子, 光照则有外部的光源提供 (假设场景某处存在点光源点光源). 
 
     * 光源在着色粒子的过程中也需要考虑光路上由其他粒子导致的衰减 -- Adaptive transmittance volume, 在已知光源的情况下, 预计算好光源到空间中各个点的衰减程度, 然后将这些衰减程度信息存入网格中, 这样在渲染的过程中尽可以直接索引, 而不用再进行光路上的积分计算. 
-    ![Alt text](/images/image-14.png)
+    ![Alt text](image-14.png)
     * 这里采用了闪光灯假设, 实现起来比较苛刻, 即 利用闪光灯相机拍摄图片, 所以唯一光源与相机原点重合, 简化了计算. 
 
 2. **反射场和可见性场, 用于学习光照条件** -- [NeRV: Neural Reflectance and Visibility Fields for Relighting and View Synthesis](https://people.eecs.berkeley.edu/~pratul/nerv/)
