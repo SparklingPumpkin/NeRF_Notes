@@ -62,7 +62,7 @@ $$f(\boldsymbol{q})=\prod_{c\in C}f(\boldsymbol{q})_c$$
 
 - **空间的总变分（Total variation in space）** 
     
-    空间总变分正则化 鼓励稀疏梯度(使用L1范数)或平滑梯度(使用L2范数)，分别提供 编码空间中稀疏或平滑边缘的先验
+    空间总变分正则化 鼓励稀疏梯度 (使用L1范数)或平滑梯度(使用L2范数)，分别提供 编码空间中稀疏或平滑边缘的先验
 
     Plenoxels，TensoRF中也使用了类似技术
     
