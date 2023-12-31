@@ -258,7 +258,7 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
 
 1. **多维数据的二维分解** -- [K-Planes: Explicit Radiance Fields in Space, Time, and Appearance](https://openaccess.thecvf.com/content/CVPR2023/html/Fridovich-Keil_K-Planes_Explicit_Radiance_Fields_in_Space_Time_and_Appearance_CVPR_2023_paper.html) | CVPR2023_87 | [github](https://github.com/sarafridov/K-Planes) -- [详](K-planes.md)
 
-    4D volumes可以分解为6个平面, 3个平面代表空间+3个平面代表时间变化. 如下图:
+    4D volumes可以分解为6个平面, 3个平面代表空间+3个平面代表时间变化, 分别为 $xy, xz, yz, xt, yt, zt$. 如下图:
 
     ![Alt text](image-9.png)
 
@@ -269,6 +269,8 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
     - d. 这些特征可以用一个小的MLP  或作者提供的显式线性解码器进行解码. 
     - e. 标准的体积渲染公式 预测光线的颜色和密度
     - f. 在时空上的简单正则化来最小化重建损失进行优化
+
+    这种结构对时间平滑性和多分辨率空间结构
 
 ### 2.4. 可编辑
 
