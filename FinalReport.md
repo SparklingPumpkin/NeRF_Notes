@@ -379,8 +379,7 @@ NeRF 的简化操作将物体的 geometry/material/lighting 耦合成了 density
     * 核心任务 -- 用神经隐式SDF zero-level set表示表面 (之 使用可微分渲染解决多视角重建需要 mask 的问题)
     * 核心方法 -- SDF-guided Volume Rendering -- 设法用一个转换函数将 SDF $f(\mathbf{x}),\mathbf{x}=\mathbf{o}+\mathbf{d}t$ 转换成体积渲染中的权重值 $w(t)$, 用来实现 $C(\mathbf{o},\mathbf{v})=\int_0^{+\infty}w(t)c(\mathbf{p}(t),\mathbf{v})dt$ (就是NeRF的公式)
     * 这个过程中, 通过一个可学习的标准差 s 来控制转换函数的带宽 (寻找可能是物体表面的区间). 一开始的带宽非常宽, 利于学习到整体形状（低频信号）, 也便于优化. 随着学习过程的深度, 带宽越来越窄, 越来越关注细节的优化（高频信号）, Volume Rendering 越来越接近 Surface Rendering 的效果. 
-    * 具体来说这个转换得到的权值 $w(t)$ 应该满足
-      * 无偏
+
     * 另外有一篇类似的VolSDF, 任务与本文相同, 方法也是通过转换函数得到权重参与积分, 但 VolSDF 则是通过控制采样的过程来实现 SDF-guided Volume Rending. 
 
 
@@ -408,7 +407,6 @@ NeRF 的简化操作将物体的 geometry/material/lighting 耦合成了 density
 - render video 
 - [Reproduce_kplanes_nerfstudio](Reproduce_kplanes_nerfstudio.md)
 - [github](https://github.com/SparklingPumpkin/fnspkg)
-- 
 
 ## 4. 总结展望
 
