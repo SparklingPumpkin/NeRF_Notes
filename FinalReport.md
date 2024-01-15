@@ -23,26 +23,26 @@ NeRF 由 **神经网络定义隐式表面** 的一众方法发展而来. **神�
 3. [PIFu](https://shunsukesaito.github.io/PIFu/) 使用含CNN的隐式神经网络, 对于给定图像 (单张或多张都可) , 使用SDF计算白模, 同时将2D像素对齐到3D白模, 可以生成颜色, 且分辨率高. 
 
 
-ps: NeRF是神经隐式方法, 但不是神经隐式表面方法, 并不能直接从中求出物体表面 (特别是高质量的表面). 然而实际应用中关注的最多的还是物体表面 (比如生成可编辑可操作的3D模型), 空白处和物体内部都是无效部分. 后续会看到有方法重新将NeRF发展回求取表面的方向. 
+ps: NeRF是**神经隐式**方法, 但不是**神经隐式表面**方法, 并不能直接从中求出物体表面 (特别是高质量的表面). 然而实际应用中关注的最多的还是物体表面 (比如生成可编辑可操作的3D模型), 空白处和物体内部都是无效部分. 后续会看到有方法**重新**将NeRF发展回**求取表面**的方向. 
 
-但是这不是说只关注表面会更好. 体积渲染关注全局, 更加真实地模拟了现实世界, 毕竟现实世界不是只有物体表面的. 关注整体是更全面的策略, 这也是NeRF渲染效果好的原因. 
+但是这不是说只关注表面会更好. 体渲染关注全局, 更加**真实**地模拟了现实世界, 毕竟现实世界不是只有物体表面的. 关注整体是更全面的策略, 这也是NeRF渲染效果好的原因. 
 
 ### 1.2. NeRF 
 
 #### 1.2.1. NeRF 创新点
 
-NeRF 之所以能在众多同期方法中脱颖而出,得益于 NeRF 极佳的渲染效果 (精度高, 有颜色, 光线效果好等). 
+NeRF 之所以能在众多同期方法中脱颖而出,得益于 NeRF **极佳的渲染效果** (精度高, 有颜色, 光线效果好等). 
 
 以下二点是 NeRF 中重要的创新点 或对于其他方法的提炼:
 
-- 将体积渲染方法引入隐式神经网络. 直观来说, 这使得 NeRF 有回归颜色的能力; 还有可能潜在提高了渲染精度. 
-- 神经网络前加了重编码层, 利用三角函数提升输入的维度; 分层采样, 关注细节. 这使得渲染精度进一步提高. 
+- 将**体渲染**方法引入隐式神经网络. 直观来说, 这使得 NeRF 有**回归颜色**的能力; 还有可能潜在提高了渲染精度. 
+- 神经网络前加了重**编码**层, 利用三角函数提升输入的维度; 分层采样, 关注细节. 这使得渲染精度进一步提高. 
 
 
 #### 1.2.2. NeRF 思路总结
 
 - 训练: 即MLP函数. 该函数输入查询的点以及观看方向 $(x, y, z, θ, φ)$, 输出该观看方向下的颜色和密度 $(R, G, B, σ)$. 
-- 渲染: 通过MLP查询所有点在所需视角的颜色密度, 进行体积渲染. 
+- 渲染: 通过MLP查询所有点在所需视角的颜色密度, 进行体渲染. 
 - 训练过程中的优化方法: 查询方向对齐输入的**一组具有已知相机姿势的图像, 作为ground truth**, 进行梯度下降. 
 - 改进1: 重新编码. 在MLP前加一层编码层, 将输入$(x, y, z, θ, φ)$ 重新编码用sin/ cos为更高维的张量, 适应细节
 - 改进2: 分层采样. 粗采样区分空间空白部分和物体内部, 精采样重点关注物体边界细节. 用来节省内存以及加速. 
@@ -52,30 +52,41 @@ NeRF 之所以能在众多同期方法中脱颖而出,得益于 NeRF 极佳的�
 1. 场景表示将一个连续场景表示为 5D 向量值函数, 其输入是 3D 位置和 2D 观看方向 $x = (x, y, z) , d = (θ, φ)$, 其输出是发射颜色和体积密度 $c = (R, G, B), σ$.   
 ![Alt text](image-1.png)
 
-1. 神经网络架构: 在重编码层之后, MLP $F_{\Theta}$  首先处理具有 8 个全连接层的输入 3D 坐标 $x$ (使用 ReLU 激活和每层 256 个通道) , 然后输出 σ 和 256  维特征向量. 然后, 该特征向量与相机光线的观看方向连接, 并传递到一个额外的全连接层 (使用 ReLU 激活和 128 个通道) , 该层输出与视图相关的 RGB 颜色. 这种方法分隔得方法可以促使多视图一致. 
+1. 神经网络架构:   
+   - 重编码层
+   - MLP $F_{\Theta}$  处理具有 8 个全连接层的输入 3D 坐标 $x$ (使用 ReLU 激活和每层 256 个通道) , 然后输出 σ 和 256  维特征向量. 
+   - 该特征向量与**相机视角方向**连接, 并传递到一个额外的全连接层 (使用 ReLU 激活和 128 个通道) , 该层输出与视图相关的 RGB 颜色. 
+   - 这种方法分隔得方法可以促使多视图一致. 
 
-2. 体积渲染方法: 预期颜色 $C(r)$ 的积分形式: 
-$$C(\mathbf{r})=\int_{t_n}^{t_f}T(t)\sigma(\mathbf{r}(t))\mathbf{c}(\mathbf{r}(t),\mathbf{d})dt\:,\:\text{where}\:T(t)=\exp\left(-\int_{t_n}^t\sigma(\mathbf{r}(s))ds\right)$$
-- $C(r)$: 表示在点 r 处的颜色.  
-- $t_n$和 $t_f$: 表示路径的起始点和终止点.   
-- $σ(x)$: 体积密度, 可以解释为光线终止于位置 x 处的无穷小粒子的微分概率.   -- `alpha = raw2alpha(raw[..., 3] + noise, dists)`  
-- $T(t)$: 透射率, 表示从路径起始点 $t_n$ 到当前点 $t$ 的透射率, 通过对路径上的吸收函数 $σ(r(s))$ 进行积分来计算. 即, 射线从tn传播到t而不击中任何其他粒子的概率.   -- `weights`  
-- $\sigma(r(t))$: 表示在路径上的点 $\mathbf{r}(t)r(t)$ 处的体积密度 (opacity) . 这由网络预测并通过函数 `raw2alpha` 转换得到, 表示为 `alpha`.   
-- ${c}(r(t),d)$: 表示在路径上的点 $r(t)$ 处的颜色, 其中 $d$ 是观察方向.   
-- $r(t) = o + td$: 相机光线路径, 其中 $o$ 是光线原点.    -- `pts = rays_o[..., None, :] + rays_d[..., None, :] * z_vals[..., :, None]`   
-- $d$: 光线方向.   
-- $t$: 一个沿着光线方向的距离参数.   
+- 体渲染介绍
 
-1. 体积渲染离散化近似: 
-$$\hat{C}(\mathbf{r})=\sum_{i=1}^NT_i(1-\exp(-\sigma_i\delta_i))\mathbf{c}_i\:,\:\text{where}\:T_i=\exp\left(-\sum_{j=1}^{i-1}\sigma_j\delta_j\right)$$
+    体渲染本身是为了解决烟云等非刚性物体的渲染建模, 后来拓展到固体.[资料](https://zhuanlan.zhihu.com/p/595117334)
 
-- $\hat{C}(\mathbf{r})$ : 这是沿着光线 \(\mathbf{r}\) 累积的估计颜色, 通过对沿光线的离散点求和来近似. 
-- $\sigma_i$: 表示第 $i$ 个采样点的密度.  -- $\sigma(r(t))$  
-- $\delta_i$: 表示第 $i$ 个采样点和前一个采样点之间的距离.  -- 积分步长
-- $c_i$: 表示第 $i$ 个采样点的颜色.  -- ${c}(r(t),d)$  
-- $T_i$: 是从光线起点到第 $i$ 个采样点之间的累积透明度, 计算方法是对之前所有采样点的 $\sigma_j \delta_j$ 求和再取负指数. 
+1. 体渲染方法: 预期颜色 $C(r)$ 的积分形式:   
+$C(\mathbf{r})=\int_{t_n}^{t_f}T(t)\sigma(\mathbf{r}(t))\mathbf{c}(\mathbf{r}(t),\mathbf{d})dt\:,\:\text{where}\:T(t)=\exp\left(-\int_{t_n}^t\sigma(\mathbf{r}(s))ds\right)$
 
-5. 位置编码 (PE, Positional Encoding). 深度网络偏向于学习**低频函数** (频谱偏差): 让网络 $F_{\Theta}$ 直接对 $(x, y, z, θ, φ)$ 输入坐标进行操作会导致渲染在表示颜色和几何的高频变化方面表现不佳. 所以在将输入传递到网络之前, 使用高频函数将输入映射到更高维度的空间, 可以更好地拟合包含高频变化的数据. 
+   - $C(r)$: 表示在点 r 处的颜色.  
+   - $t_n$和 $t_f$: 表示路径的起始点和终止点.   
+   - $σ(x)$: 体积密度, 可以解释为光线终止于位置 x 处的无穷小粒子的微分概率. 
+   - $T(t)$: 透射率, 表示从路径起始点 $t_n$ 到当前点 $t$ 的透射率, 通过对路径上的吸收函数 $σ(r(s))$ 进行积分来计算. 即, 射线从tn传播到t而不击中任何其他粒子的概率.
+   - $\sigma(r(t))$: 表示在路径上的点 $\mathbf{r}(t)r(t)$ 处的体积密度 (opacity) .  
+   - ${c}(r(t),d)$: 表示在路径上的点 $r(t)$ 处的颜色, 其中 $d$ 是观察方向.   
+   - $r(t) = o + td$: 相机光线路径, 其中 $o$ 是光线原点.  
+   - $d$: 光线方向.   
+   - $t$: 一个沿着光线方向的距离参数.  
+
+
+
+1. 体渲染离散化近似:   
+$\hat{C}(\mathbf{r})=\sum_{i=1}^NT_i(1-\exp(-\sigma_i\delta_i))\mathbf{c}_i\:,\:\text{where}\:T_i=\exp\left(-\sum_{j=1}^{i-1}\sigma_j\delta_j\right)$
+
+    - $\hat{C}(\mathbf{r})$ : 这是沿着光线 $\mathbf{r}$ 累积的估计颜色, 通过对沿光线的离散点求和来近似. 
+    - $\sigma_i$: 表示第 $i$ 个采样点的密度.  -- $\sigma(r(t))$  
+    - $\delta_i$: 表示第 $i$ 个采样点和前一个采样点之间的距离.  -- 积分步长
+    - $c_i$: 表示第 $i$ 个采样点的颜色.  -- ${c}(r(t),d)$  
+    - $T_i$: 是从光线起点到第 $i$ 个采样点之间的累积透明度, 计算方法是对之前所有采样点的 $\sigma_j \delta_j$ 求和再取负指数. 
+
+1. 位置编码 (PE, Positional Encoding). 深度网络偏向于学习**低频函数** (频谱偏差): 让网络 $F_{\Theta}$ 直接对 $(x, y, z, θ, φ)$ 输入坐标进行操作会导致渲染在表示颜色和几何的高频变化方面表现不佳. 所以在将输入传递到网络之前, 使用高频函数将输入映射到更高维度的空间, 可以更好地拟合包含高频变化的数据. 
 $\gamma$ 是 $R$ 到更高维 $R^{2L}$ 的映射；$F_{\Theta}^{\prime}$ 并且仍然只是一个常规的 MLP. 编码函数如下: 
 $$F_{\Theta}=F_{\Theta}^{\prime}\circ\gamma $$
 $$\gamma(p)=\left(\sin\left(2^0\pi p\right),\cos\left(2^0\pi p\right),\:\cdots,\sin\left(2^{L-1}\pi p\right),\:\cos\left(2^{L-1}\pi p\right)\right)$$
@@ -84,14 +95,14 @@ $$\gamma(p)=\left(\sin\left(2^0\pi p\right),\cos\left(2^0\pi p\right),\:\cdots,\
 
     另一个理解: NeRF 想做的事情是表征欧式空间中的一个场, 而 Positional Encoding 则是对欧式空间的三个轴分别引入了一组正交基函数, 此时 MLP 的任务就可以看作是学习得到这三组正交基函数的**系数表示**, 这个任务相比于让 MLP 去拟合高频特征显然要简单得多. 
 
-6. 分层体积采样. 即使用两个网络 (粗略& 精细) 来表示场景. 先在粗采样点 $N_c$ 采样, 利用颜色计算采样光线上每个点可能为高密度点的概率, 再对密度高的区域点 $N_f$ 进行精细采样. 在所有 $N_c+N_f$ 个样本的基础上, 使用 之前的估计方程 计算光线的最终渲染颜色 $\hat{C}_f(r)$. 这有利于提升渲染精度, 提升训练/ 渲染速度.   
-- 作者粗细两个层分为两个MLP. 其本质是粗MLP输入的点稀疏, 这就决定了他能渲染出的细节的上限, 所以需要另一个细MLP. 
+1. 分层体积采样. 即使用两个网络 (粗略& 精细) 来表示场景. 先在粗采样点 $N_c$ 采样, 利用颜色计算采样光线上每个点可能为高密度点的概率, 再对密度高的区域点 $N_f$ 进行精细采样. 在所有 $N_c+N_f$ 个样本的基础上, 使用 之前的估计方程 计算光线的最终渲染颜色 $\hat{C}_f(r)$. 这有利于提升渲染精度, 提升训练/ 渲染速度.   
+    - 作者粗细两个层分为两个MLP. 其本质是粗MLP输入的点稀疏, 这就决定了他能渲染出的细节的上限, 所以需要另一个细MLP. 
 
 
 
-1. $Loss$ 为 (粗渲染-精渲染) 与 (精渲染-真实RGB) 的**总平方误差**:  
-$$\mathcal{L}=\sum_{\mathbf{r}\in\mathcal{R}}\left[\left\|\hat{C}_c(\mathbf{r})-C(\mathbf{r})\right\|_2^2+\left\|\hat{C}_f(\mathbf{r})-C(\mathbf{r})\right\|_2^2\right]$$
-- $R$ 是每批的光线集合
+1. $Loss$ 为 (粗渲染-精渲染) 与 (精渲染-真实RGB) 的**总平方误差**:    
+$\mathcal{L}=\sum_{\mathbf{r}\in\mathcal{R}}\left[\left\|\hat{C}_c(\mathbf{r})-C(\mathbf{r})\right\|_2^2+\left\|\hat{C}_f(\mathbf{r})-C(\mathbf{r})\right\|_2^2\right]$
+    - $R$ 是每批的光线集合
 
 
 #### 1.2.4. NeRF 缺点
@@ -114,18 +125,18 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
 
 [Nerfstudio](https://docs.nerf.studio/) 是一个框架, 通过模块化 NeRF 中的每个组件来简化 NeRF 新方法的开发, 使其扩展性和通用性很高. 
 
-框架 (Pipeline) 如下:   
+Pipeline 如下:   
 
 1. DataParser -- 用于处理不同类型数据的工具, 将各种数据转换为统一格式 (如 图片, 视频,  360 Data等)   
 意义: 在NeRF发展的过程中, 有些方法是通过提供更优质的数据 (如 iphone 的 Record3D 格式, 自带 3D 信息, 会比用Colmap估计的效果好) 来优化NeRF的, DataParser 给各种数据提供一个统一处理方式. 
 
-2. DataManager -- 用 DataParser 的数据生成光束对象 RayBundle 和 RayGroundTruth, 用于训练.
+1. DataManager -- 用 DataParser 的数据生成光束对象 RayBundle 和 RayGroundTruth, 用于训练.
 
-3. Model -- 模型主体, 几乎所有 NeRF 优化方法都涉及 Model. 作用是执行训练/ 渲染等过程. 
+2. Model -- 模型主体, 几乎所有 NeRF 优化方法都涉及 Model. 作用是执行训练/ 渲染等过程. 
 
-4. Field -- 求解器, 大多数 NeRF 优化方法都涉及 Field. 主要包含 get_density() 和 get_outputs() 两个类方法, 输入 RayBundle 和 RayGroundTruth, 计算返回每点密度和颜色 (也可以根据需求返回其他输出). 
+3. Field -- 求解器, 大多数 NeRF 优化方法都涉及 Field. 主要包含 get_density() 和 get_outputs() 两个类方法, 输入 RayBundle 和 RayGroundTruth, 计算返回每点密度和颜色 (也可以根据需求返回其他输出). 
 
-5. Pipeline -- 连接各个模块, 传递参数, 整个流程在此完成. 
+4. Pipeline -- 连接各个模块, 传递参数, 整个流程在此完成. 
 
 
 ### 2.1. 加快训练/ 渲染
@@ -134,13 +145,13 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
 
 1. **体素八叉树** -- 用于实现类似分层采样的功能, 但效果更优 (比NeRF快10倍左右). [Neural Sparse Voxel Fields](https://github.com/facebookresearch/NSVF) | NeurIPS2020_733 | [github](https://github.com/facebookresearch/NSVF)  
     * NSVF提出了一种新的隐式表示方法, 用于高效的自由视角渲染. 它由一组**体素边界隐式场**组成, 这些场被组织在一个**稀疏的体素八叉树**中. 这种方法的优点在于它可以通过**跳过不包含相关场景内容的体素**, 从而**加快新视角的渲染**. 与大多数显式的几何表示不同, 神经隐函数是平滑且连续的, 并且理论上可以实现高空间分辨率​​. 
-    * 在体素八叉树中, 每个节点代表一个体素, 而该体素可以被进一步细分为八个更小的体素 (子节点) . 这种结构非常适合用于表示稀疏的3D数据, 因为它允许在具有复杂几何或属性的区域使用更细的分辨率, 同时在空旷或简单的区域使用较粗的分辨率. 体素八叉树常用于体积渲染和场景的几何优化, 因为它可以显著减少渲染和处理所需的数据量. 
+    * 在体素八叉树中, 每个节点代表一个体素, 而该体素可以**被进一步细分为八个更小的体素** (子节点) . 这种结构非常适合用于表示稀疏的3D数据, 因为它允许在具有复杂几何或属性的区域使用更细的分辨率, 同时在空旷或简单的区域使用较粗的分辨率. 
 
 2. **体素表示 张量分解** -- [TensoRF: Tensorial Radiance Fields](https://apchenstu.github.io/TensoRF/) | ECCV2022_405 | [github](https://github.com/apchenstu/TensoRF)   -- 同下
 
 3. **稀疏体素网格 & 球谐函数** -- [Plenoxels Radiance Fields without Neural Networks](https://alexyu.net/plenoxels/) | CVPR2022_353 | [github](https://github.com/sxyu/svox2)  
     * Plenoxel 用球谐函数 (SH) 和体素网格 代替神经网络, 在稀疏体素 -- 即在无实体区域不填充体素 -- 的模型下进行渲染. 这一模型在单GPU上的典型优化时间仅为11分钟, 同渲染精度下比 NeRF 快两个数量级​​​​. 
-    * 球谐函数 -- 最常用的球面基函数. 在NeRF中, 它可以实现数据的压缩存储 (只需要存储系数即可), 达到缩减内存加快渲染的作用. 相似的还有 球面高斯函数 SG (具体见NeRD). 
+    * 球谐函数 -- 最常用的**球面基函数**. 在NeRF中, 它可以实现数据的压缩存储 (只需要存储系数即可), 达到缩减内存加快渲染的作用. 相似的还有 球面高斯函数 SG (具体见NeRD). 
   
 4. 体素网格 类似 [Direct Voxel Grid Optimization: Super-fast Convergence for Radiance Fields Reconstruction](https://sunset1995.github.io/dvgo/)
 
@@ -240,7 +251,7 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
        
        对于沿目标相机光线方向为 d 的查询点 x, 通过投影和插值, 从特征体积 W 中提取相应的图像特征, 该特征与空间坐标一起传递到 NeRF 网络 f. (?这个特征到底是什么)
        
-       输出 RGB 和密度值(基于体积渲染), 与目标像素值进行比较. 
+       输出 RGB 和密度值(基于体渲染), 与目标像素值进行比较. 
 
 
 #### 2.2.2. 未预训练
@@ -256,7 +267,7 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
 
 ### 2.3. 动态NeRF
 
-1. **多维数据的二维分解** -- [K-Planes: Explicit Radiance Fields in Space, Time, and Appearance](https://openaccess.thecvf.com/content/CVPR2023/html/Fridovich-Keil_K-Planes_Explicit_Radiance_Fields_in_Space_Time_and_Appearance_CVPR_2023_paper.html) | CVPR2023_87 | [github](https://github.com/sarafridov/K-Planes) -- [详](K-planes.md)
+1. **多维数据的二维分解** -- [K-Planes: Explicit Radiance Fields in Space, Time, and Appearance](https://sarafridov.github.io/K-Planes/) | CVPR2023_87 | [github](https://github.com/sarafridov/K-Planes) -- [详](K-planes.md)
 
     4D volumes可以分解为6个平面, 3个平面代表空间+3个平面代表时间变化, 分别为 $xy, xz, yz, xt, yt, zt$. 如下图:
 
@@ -267,12 +278,12 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
     - b. 多尺度双线性插值
     - c. 内插值相乘, 然后在S尺度上进行连接
     - d. 这些特征可以用一个小的MLP  或作者提供的显式线性解码器进行解码. 
-    - e. 标准的体积渲染公式 预测光线的颜色和密度
+    - e. 标准的体渲染公式 预测光线的颜色和密度
     - f. 在时空上的简单正则化来最小化重建损失进行优化
 
     参照了很多论文地策略 (Plenoxels，TensoRF, instant-ngp, mip360等), 以达到更好地时间平滑性, 多分辨率空间结构, 采样策略等. 有对本模型做适配性(或适当地优化)更新, 更多的是整合. 
 
-    核心还是在于 平面分解地策略. 
+    核心还是在于 平面分解的策略. 
 
 ### 2.4. 可编辑
 
@@ -289,7 +300,7 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
     * 架构如上. 首先学习一个 **Disentangled条件NeRF** , 它以位置编码、视图方向、形状代码和外观代码(Shape code, 提前匹配场景中的物体与shapecode, 用于后续改变物体形状样式) 作为输入和输出渲染图像这种分离的条件NeRF以一种**对抗性的方式**进行训练. 然后给定一个参考图像或文本提示, CLIP图像或文本编码器提取相应的形状和外观映射器的特征嵌入, 分别在潜在空间中倾斜一个局部步骤, 用于形状和外观操作. 这两个映射器的训练使用一个CLIP相似性损失与我们的预训练解纠缠条件NeRF. 
     * **Disentangled Conditional NeRF** -- 首先 Conditional NeRF 即将在NeRF mlp的输入的5D坐标额外加入shape code zs  and an appearance code za. Disentangled Conditional NeRF在此基础上提出新的架构, 以单独控制形状和外观, 解决了在形状和外观(颜色)条件间相互干扰的问题. 
 
-2. **将DIffusion模型引入NeRF**[Instruct-NeRF2NeRF: Editing 3D Scenes with Instructions](https://instruct-nerf2nerf.github.io/) | arXiv2023_70 | [github](https://github.com/ayaanzhaque/instruct-nerf2nerf)
+2. **将DIffusion模型引入NeRF** -- [Instruct-NeRF2NeRF: Editing 3D Scenes with Instructions](https://instruct-nerf2nerf.github.io/) | arXiv2023_70 | [github](https://github.com/ayaanzhaque/instruct-nerf2nerf)
     * 集成到了 Nerfstudio. 
     * 用文本指令编辑 NeRF 场景的方法. 该方法使用 InstructPix2Pix 的图像条件扩散 (difussion) 模型, 迭代地编辑输入图像. 重新训练了NeRF. 
     * 插件形式, 可以加装到大部分 NeRF 模型. 
@@ -308,11 +319,19 @@ NeRF 模型非常简单, 这是优点也是缺点 -- NeRF 仅仅使用 MLP 接�
 ### 2.6. 渲染质量
 
 1. **优化位置编码 - 放宽对相机姿态的严格要求** -- [BARF: Bundle-Adjusting Neural Radiance Fields](https://chenhsuanlin.bitbucket.io/bundle-adjusting-NeRF/) |ICCV2021_346
-    * BARF旨在解决NeRF在需要精确相机位置信息的限制. BARF允许从不完美或甚至未知的相机位置训练NeRF -- 对初始数据 粗略估计 或 完全随机的相机位置开始, 逐步调整相机姿态, 直到达到较标准的位置. 
+    * BARF旨在解决NeRF在需要精确相机位置信息的限制. BARF允许从不完美或甚至未知的相机位姿训练NeRF -- 对初始数据  粗略估计 或 完全随机的相机位置开始, 逐步调整相机姿态, 直到达到较标准的位置. 
 
-    * 在BARF中, 发现在NeRF中**简单应用位置编码**会对相机姿态调整/ 渲染质量产生负面影响. BARF优化:
-      * 初始阶段 (粗糙) : 在训练的开始阶段, 模型使用较低频的位置编码或完全不使用位置编码. 这允许模型首先捕捉场景的大致几何结构和全局特征, 而不是细节. 
-      * 后续阶段 (细化) : 随着训练的进行, 逐渐增加位置编码的频率, 允许模型开始关注更精细的结构和细节. 
+        * 在BARF中, 发现在NeRF中 **简单应用位置编码** 会对相机位姿调整/ 渲染质量产生负面影响. 
+        * 原因: 最简单的想法是通过back-propagation对相机位姿也同时优化，但是在实践中发现这对初始化位姿很敏感，而且容易收敛到次优解，降低重建质量。注意，positional encoding的确益于重建，但也同时导致次优解。
+
+        BARF方法通过引入一个刚体变换函数来对齐相机位姿，但是如果使用简单的位置编码，这个变换函数会很难优化，因为它需要在高维空间中寻找合适的变换参数。
+        
+        BARF方法提出了一种改进的位置编码，称为位姿敏感位置编码（pose-sensitive positional encoding），它可以在低维空间中实现相机位姿的对齐，从而提高了BARF的效率和效果。
+
+
+    BARF优化:
+        * 初始阶段 (粗糙) : 在训练的开始阶段, 模型使用较低频的位置编码或完全不使用位置编码. 这允许模型首先捕捉场景的大致几何结构和全局特征, 而不是细节. 
+        * 后续阶段 (细化) : 随着训练的进行, 逐渐增加位置编码的频率, 允许模型开始关注更精细的结构和细节. 
 
 2. **视锥体 - IPE (Integrated Positional Encoding)** -- [Mip-nerf: A multiscale representation for anti-aliasing neural radiance fields](https://jonbarron.info/mipnerf/) | ICCV2021_791 
 
@@ -352,7 +371,7 @@ NeRF 的简化操作将物体的 geometry/material/lighting 耦合成了 density
 大量运用了BRDF的相关知识, 可见[此篇](https://blog.csdn.net/weixin_40064300/article/details/124596097?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522170376655916800186560571%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=170376655916800186560571&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_click~default-2-124596097-null-null.142^v99^pc_search_result_base7&utm_term=BRDF&spm=1018.2226.3001.4187)
 
 1. **开创** -- [Neural Reflectance Fields for Appearance Acquisition](https://arxiv.org/abs/2008.03824)
-    * 不再将物体假设成光源 (发光粒子) , 而是带有反射性质的粒子, 光照则有外部的光源提供 (假设场景某处存在点光源点光源). 
+    * 不再将物体假设成光源 (发光粒子) , 而是带有反射性质的粒子, 光照则有外部的光源提供 (假设场景某处存在点光源). 
 
     * 光源在着色粒子的过程中也需要考虑光路上由其他粒子导致的衰减 -- Adaptive transmittance volume, 在已知光源的情况下, 预计算好光源到空间中各个点的衰减程度, 然后将这些衰减程度信息存入网格中, 这样在渲染的过程中尽可以直接索引, 而不用再进行光路上的积分计算. 
     ![Alt text](image-14.png)
@@ -377,7 +396,8 @@ NeRF 的简化操作将物体的 geometry/material/lighting 耦合成了 density
 1. [Neus: Learning neural implicit surfaces by volume rendering for multi-view reconstruction](https://lingjie0206.github.io/papers/NeuS/)  
     Neus 超越原先的神经隐式表面方法的原因之一就是它利用了NeRF良好的关注全局的能力
     * 核心任务 -- 用神经隐式SDF zero-level set表示表面 (之 使用可微分渲染解决多视角重建需要 mask 的问题)
-    * 核心方法 -- SDF-guided Volume Rendering -- 设法用一个转换函数将 SDF $f(\mathbf{x}),\mathbf{x}=\mathbf{o}+\mathbf{d}t$ 转换成体积渲染中的权重值 $w(t)$, 用来实现 $C(\mathbf{o},\mathbf{v})=\int_0^{+\infty}w(t)c(\mathbf{p}(t),\mathbf{v})dt$ (就是NeRF的公式)
+    * 核心方法 -- SDF-guided Volume Rendering -- 设法用一个转换函数将 SDF $f(\mathbf{x}),\mathbf{x}=\mathbf{o}+\mathbf{d}t$ 转换成体渲染中的权重值 $w(t)$, 用来实现 $C(\mathbf{o},\mathbf{v})=\int_0^{+\infty}w(t)c(\mathbf{p}(t),\mathbf{v})dt$ (就是NeRF的公式)
+    * $C(\mathbf{r})=\int_{t_n}^{t_f}T(t)\sigma(\mathbf{r}(t))\mathbf{c}(\mathbf{r}(t),\mathbf{d})dt\:,\:\text{where}\:T(t)=\exp\left(-\int_{t_n}^t\sigma(\mathbf{r}(s))ds\right)$
     * 这个过程中, 通过一个可学习的标准差 s 来控制转换函数的带宽 (寻找可能是物体表面的区间). 一开始的带宽非常宽, 利于学习到整体形状（低频信号）, 也便于优化. 随着学习过程的深度, 带宽越来越窄, 越来越关注细节的优化（高频信号）, Volume Rendering 越来越接近 Surface Rendering 的效果. 
 
     * 另外有一篇类似的VolSDF, 任务与本文相同, 方法也是通过转换函数得到权重参与积分, 但 VolSDF 则是通过控制采样的过程来实现 SDF-guided Volume Rending. 
@@ -409,6 +429,45 @@ NeRF 的简化操作将物体的 geometry/material/lighting 耦合成了 density
 - [github](https://github.com/SparklingPumpkin/fnspkg)
 
 ## 4. 总结展望
+
+### 4.1. 总结
+
+回归到最原始的NeRF, 再去思考NeRF的意义 -- NeRF最最核心的 **可微体渲染** 才是重点. 所有的新方法可能舍弃了NeRF原来的思路, 改用新的更好的策略, 但体渲染一直存在. 
+
+之前提到的几篇NeRF改进较为核心的部分, 很多都是对体渲染下手的. Mip-NeRF的 视锥体 / 光照篇将NeRF体渲染改成了更复杂的体渲染模型. 具体如下. 
+
+#### 体渲染
+
+再来看体渲染, 其实分为两种: 直接体渲染, 间接体渲染. 
+
+- 直接体渲染: 根据体素的属性（如颜色、透明度、发光度等）直接绘制图像，不考虑光照和阴影的影响(但是实际上光照阴影的信息已经包含在体素的属性中了)
+- 间接体渲染: 根据体素的表面或边界生成多边形网格，再利用传统的**表面渲染**方法绘制图像，考虑光照和阴影的影响。
+
+**NeRF使用的是直接体渲染.**
+
+Nelson Max 在 [Optical Models for Direct Volume Rendering](https://ieeexplore.ieee.org/abstract/document/468400) 中, 总结了直接体渲染的不同类型: 
+
+- 仅吸收：体被假设为由完全吸收所有撞到他们身上光的冷的黑色粒子组成。他们不发光，也不散射光.
+- 仅发光：体被假设为由仅发光但不吸收光的粒子组成，因为吸收是可以忽略不计的。
+- 吸收+发光：这种光学模型是直接体素渲染中最常见的一个。粒子会发光，也会遮挡（吸收）到来的光。然而，没有散射或间接光。
+- 散射和着色/阴影：这个模型包括体素外部光照的散射。被散射的光可以假定不受远处光源的干扰，它也能被考虑内的光源和体素之间的粒子遮挡。
+- 多重散射：这种复杂的模型支持能被多个粒子散射的间接光。
+
+**NeRF使用的是"仅发光"模型.**
+
+
+
+####
+
+NeRF到底是不是体素方法?
+
+体素方法  将空间划分为一些小的立方体，称为体素（voxel），并为每个体素分配一些属性，如颜色、透明度、发光度等，然后使用一些渲染技术，如光线追踪或光栅化，来绘制图像. 
+
+在 NeRF 中, 体素根本就没有被划分出来. 这个 MLP 的输入可以是任意细微的点, 虽然这个点实际上还是从一个潜在的体素模型中取得的, 而且可以无限细分, 这就表示了连续场 (实际应用中会根据需求适当采样). 其次 NeRF 就没有单一地看待体素, 因为他建模的对象是 5D 的 $(x, y, z, θ, φ)$. 这个 5D 是非常精炼的. 
+
+ 
+
+### 4.2. 展望
 
 - 渲染速度、质量的提升是无止境的, 虽然目前已经优化的非常快了. 虽然找到更快的方法可能是非常困难的. （实时渲染, 在拍摄视频的同时直接构建隐式神经网络, 对拍摄场景可以渲染出自定义的效果）
 - 小众方向, 优化特定场景下的NeRF效果. 如无人艇 等实际应用场景的特殊优化. 

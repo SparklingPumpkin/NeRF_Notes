@@ -101,7 +101,8 @@ TensoRF用 **体素多通道特征的3D网格** 对这个函数 $F_{\Theta}$ 建
 
 $\mathcal{G}_{\sigma}$ 直接表示体积密度. 
 
-** $\sigma,c=\mathcal{G}_\sigma(\mathbf{x}),S(\mathcal{G}_c(\mathbf{x}),d)$
+**$\sigma,c=\mathcal{G}_\sigma(\mathbf{x}),S(\mathcal{G}_c(\mathbf{x}),d)$**
+
 ------
 
 应用 VMD, 对于 $\mathcal{G}_\sigma$: 
